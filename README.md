@@ -1,1 +1,1 @@
-# bakkie - Model Context Protocol implementation in Rust
+# bakkie - Model Context Protocol implementation in Rust (pronounced "bucky")

@@ -38,6 +38,7 @@ name = "bakkie_simple"
 version = "0.1.0"
 dependencies = [
  "bakkie_derive",
+ "thiserror",
 ]
 
 [[package]]
