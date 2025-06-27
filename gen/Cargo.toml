@@ -1,11 +1,13 @@
-[workspace]
-resolver = "2"
-members = [ "bakkie_schema","gen"]
-
 [package]
-name = "bakkie"
+name = "gen"
 version = "0.1.0"
 edition = "2024"
 license = "Unlicense/MIT"
 authors = ["Daniel Levin <daniellevin2607@gmail.com>"]
-keywords = ["mcp"]
+publish = false
+
+[dependencies]
+anyhow = "1.0.98"
+schemars = "0.8"
+serde_json = "1.0.140"
+typify = "0.4.2"
