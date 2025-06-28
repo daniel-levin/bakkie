@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-bakkie_simple = "0.1"
+bakkie = "0.1"

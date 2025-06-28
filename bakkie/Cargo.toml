@@ -7,4 +7,7 @@ authors = ["Daniel Levin <daniellevin2607@gmail.com>"]
 keywords = ["mcp"]
 
 [dependencies]
+bakkie_derive = "0.1"
 thiserror = "2.0.12"
+tokio = { version = "1.45.1", features = ["full"] }
+tokio-util = "0.7.15"

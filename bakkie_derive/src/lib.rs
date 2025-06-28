@@ -6,3 +6,10 @@ pub fn tool(attr: TokenStream, item: TokenStream) -> TokenStream {
     println!("item: \"{item}\"");
     item
 }
+
+#[proc_macro_attribute]
+pub fn prompt(attr: TokenStream, item: TokenStream) -> TokenStream {
+    println!("attr: \"{attr}\"");
+    println!("item: \"{item}\"");
+    item
+}

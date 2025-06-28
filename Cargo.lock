@@ -18,6 +18,7 @@ checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 name = "bakkie"
 version = "0.1.0"
 dependencies = [
+ "bakkie_derive",
  "thiserror",
 ]
 
@@ -34,18 +35,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bakkie_simple"
-version = "0.1.0"
-dependencies = [
- "bakkie_derive",
- "thiserror",
-]
-
-[[package]]
 name = "digest"
 version = "0.1.0"
 dependencies = [
- "bakkie_simple",
+ "bakkie",
 ]
 
 [[package]]
