@@ -7,7 +7,13 @@ authors = ["Daniel Levin <daniellevin2607@gmail.com>"]
 keywords = ["mcp"]
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+anyhow = "1"
 bakkie_derive = "0.1"
+bytes = "1.10.1"
+serde_json = "1.0.140"
 thiserror = "2.0.12"
 tokio = { version = "1.45.1", features = ["full"] }
-tokio-util = "0.7.15"
+tokio-util = { version = "0.7.15", features = ["full"] }
+futures-util = "0.3"
+bakkie_schema = "0.1"

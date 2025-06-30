@@ -6,3 +6,4 @@ publish = false
 
 [dependencies]
 bakkie = "0.1"
+tokio = { version = "1.45.1", features = ["full"] }
