@@ -1,10 +1,14 @@
+use std::marker::PhantomData;
 use thiserror::Error;
+
 use tokio::io::{AsyncRead, AsyncWrite};
 
 pub use bakkie_derive::{prompt, tool};
+use bakkie_schema::ElicitRequestParams;
 
 pub(crate) mod codec;
 pub(crate) mod server;
+pub(crate) mod tool;
 
 pub use server::McpServer;
 
@@ -30,4 +34,15 @@ pub type Result<T, E = BakkieError> = std::result::Result<T, E>;
 enum BakkieErrorInternal {
     #[error(transparent)]
     CodecError(#[from] codec::CodecError),
+}
+
+#[derive(Debug)]
+pub struct App<T: Clone> {
+    pub app: T,
+}
+
+impl<T: Clone> App<T> {
+    pub async fn elicit(&self, r: ElicitRequestParams) -> Result<()> {
+        Ok(())
+    }
 }

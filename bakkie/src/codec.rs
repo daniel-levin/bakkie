@@ -42,7 +42,7 @@ pub enum Frame {
 pub struct McpFraming;
 
 impl Decoder for McpFraming {
-    type Item = JsonrpcMessage;
+    type Item = Frame;
     type Error = CodecError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -59,49 +59,38 @@ impl Decoder for McpFraming {
     }
 }
 
-impl Encoder<JsonrpcMessage> for McpFraming {
+impl Encoder<Frame> for McpFraming {
     type Error = CodecError;
 
-    fn encode(&mut self, item: JsonrpcMessage, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
         serde_json::to_writer(dst.as_mut(), &item)?;
         dst.extend_from_slice(b"\n");
         Ok(())
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Conversation<T: Stream> {
-    stream: Arc<Mutex<Framed<T, McpFraming>>>,
+#[derive(Debug)]
+pub struct Transport<T: Stream> {
+    stream: Mutex<Framed<T, McpFraming>>,
 }
 
-impl Conversation<StdioStream> {
-    pub fn from_stdio() -> Self {
+impl Transport<StdioStream> {
+    pub fn over_stdio() -> Self {
         Self {
-            stream: Arc::new(Mutex::new(Framed::new(
-                tokio::io::join(stdin(), stdout()),
-                McpFraming,
-            ))),
+            stream: Mutex::new(Framed::new(tokio::io::join(stdin(), stdout()), McpFraming)),
         }
     }
 }
 
-impl Conversation<TcpStream> {
+impl Transport<TcpStream> {
     pub fn over_tcp(tcp: TcpStream) -> Self {
         Self {
-            stream: Arc::new(Mutex::new(Framed::new(tcp, McpFraming))),
+            stream: Mutex::new(Framed::new(tcp, McpFraming)),
         }
     }
 }
 
-impl<T: Stream> Conversation<T> {
-    pub async fn run_to_completion(&mut self) -> Result<()> {
-        while let Some(msg) = self.stream.lock().await.next().await {
-            let msg = msg?;
-        }
-
-        Ok(())
-    }
-}
+impl<T: Stream> Transport<T> {}
 
 #[cfg(test)]
 mod tests {
@@ -109,7 +98,7 @@ mod tests {
     use tokio::net::TcpListener;
 
     #[test]
-    fn single_frame() {
+    fn framing() {
         let Ok(Frame::Single(_)) = serde_json::from_str(
             r#"
             {"jsonrpc": "2.0", "method": "subtract", "params": {}, "id": 1}
@@ -126,29 +115,5 @@ mod tests {
         ) else {
             panic!("must match")
         };
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn my_test() -> anyhow::Result<()> {
-        let contents = include_str!("../testdata/basic");
-        let stream = TcpListener::bind("127.0.0.1:0").await?;
-        let port = stream.local_addr()?.port();
-
-        let sender = tokio::task::spawn(async move {
-            let mut client = TcpStream::connect(&format!("127.0.0.1:{port}")).await?;
-            client.write(contents.as_bytes()).await?;
-
-            anyhow::Result::<()>::Ok(())
-        });
-
-        let (client, _) = stream.accept().await?;
-
-        let mut conv = Conversation::over_tcp(client);
-
-        conv.run_to_completion().await?;
-
-        sender.await?;
-
-        Ok(())
     }
 }
