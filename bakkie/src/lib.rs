@@ -2,7 +2,7 @@ use bakkie_schema::JsonrpcMessage;
 use bytes::{Buf, BytesMut};
 use thiserror::Error;
 use tokio::{
-    io::{AsyncRead, AsyncWrite, Join, Stdin, Stdout, stdin, stdout},
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt, Join, Stdin, Stdout, stdin, stdout},
     net::TcpStream,
 };
 use tokio_util::codec::{Decoder, Encoder};
@@ -83,7 +83,8 @@ mod tests {
         let port = stream.local_addr()?.port();
 
         let sender = tokio::task::spawn(async move {
-            let client = TcpStream::connect(&format!("127.0.0.1:{port}")).await?;
+            let mut client = TcpStream::connect(&format!("127.0.0.1:{port}")).await?;
+            client.write(contents.as_bytes()).await?;
 
             anyhow::Result::<()>::Ok(())
         });
@@ -92,7 +93,7 @@ mod tests {
 
         let mut conv = Conversation::over_tcp(client);
 
-        conv.run_to_completion().await;
+        conv.run_to_completion().await?;
 
         sender.await?;
 
