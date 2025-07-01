@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use tokio::io::{AsyncRead, AsyncWrite};
 
-pub use bakkie_derive::{prompt, tool};
+pub use bakkie_derive::{Argument, prompt, tool};
 use bakkie_schema::ElicitRequestParams;
 
 pub(crate) mod codec;
@@ -11,6 +11,14 @@ pub(crate) mod server;
 pub(crate) mod tool;
 
 pub use server::McpServer;
+
+pub mod schemars {
+    pub use schemars::*;
+}
+
+pub mod serde {
+    pub use serde::*;
+}
 
 pub trait Stream: AsyncRead + AsyncWrite + Unpin + Send + Sync + 'static {}
 

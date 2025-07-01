@@ -1,4 +1,4 @@
-use bakkie::{App, McpServer};
+use bakkie::{App, Argument, McpServer, schemars::JsonSchema};
 use bakkie_schema::CallToolResult;
 use std::{pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
@@ -20,6 +20,9 @@ impl Thing {
 }
 
 type MyApp = Arc<Mutex<Thing>>;
+
+#[derive(Debug, bakkie::Argument)]
+struct Payload {}
 
 #[bakkie::tool("sha256")]
 async fn find_last_ten_logs(app: App<MyApp>, name: String) -> bakkie::Result<CallToolResult> {
