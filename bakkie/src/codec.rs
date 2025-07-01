@@ -1,8 +1,10 @@
 use bakkie_schema::JsonrpcMessage;
+use serde::Deserializer;
 use tokio::io::AsyncWriteExt;
 use tokio_util::codec::{Decoder, Encoder};
 
 use bytes::{Buf, BytesMut};
+use serde::{Deserialize, Serialize};
 use serde_json::{StreamDeserializer, de::SliceRead};
 use thiserror::Error;
 use tokio::{
@@ -26,6 +28,14 @@ pub enum CodecError {
 
     #[error(transparent)]
     JsonError(#[from] serde_json::Error),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Frame {
+    Batch(Vec<JsonrpcMessage>),
+
+    Single(JsonrpcMessage),
 }
 
 #[derive(Debug)]
@@ -97,6 +107,26 @@ impl<T: Stream> Conversation<T> {
 mod tests {
     use super::*;
     use tokio::net::TcpListener;
+
+    #[test]
+    fn single_frame() {
+        let Ok(Frame::Single(_)) = serde_json::from_str(
+            r#"
+            {"jsonrpc": "2.0", "method": "subtract", "params": {}, "id": 1}
+        "#,
+        ) else {
+            panic!("must match")
+        };
+
+        let Ok(Frame::Batch(_)) = serde_json::from_str(
+            r#"
+            [{"jsonrpc": "2.0", "method": "subtract", "params": {}, "id": 1},
+            {"jsonrpc": "2.0", "method": "subtract", "params": {}, "id": 1}]
+        "#,
+        ) else {
+            panic!("must match")
+        };
+    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn my_test() -> anyhow::Result<()> {
