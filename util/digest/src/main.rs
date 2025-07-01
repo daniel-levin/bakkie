@@ -9,12 +9,7 @@ async fn find_last_ten_logs(name: String) {}
 use bakkie::Conversation;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> bakkie::Result<()> {
     let mut c = Conversation::from_stdio();
-    let mut i = 0;
-    while let Some(k) = c.run().await {
-        i += 1;
-        let file = format!("{}.json", i);
-        std::fs::write(file, format!("{:#?}", k)).unwrap();
-    }
+    c.run_to_completion().await
 }
