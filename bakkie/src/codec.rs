@@ -59,7 +59,7 @@ impl Encoder<JsonrpcMessage> for McpFraming {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Conversation<T: Stream> {
     stream: Arc<Mutex<Framed<T, McpFraming>>>,
 }

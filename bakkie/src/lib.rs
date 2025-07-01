@@ -4,6 +4,9 @@ use tokio::io::{AsyncRead, AsyncWrite};
 pub use bakkie_derive::{prompt, tool};
 
 pub(crate) mod codec;
+pub(crate) mod server;
+
+pub use server::McpServer;
 
 pub trait Stream: AsyncRead + AsyncWrite + Unpin + Send + Sync + 'static {}
 
