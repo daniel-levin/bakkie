@@ -1,9 +1,23 @@
 use bakkie_schema::JsonrpcMessage;
-use bytes::{Buf, BytesMut};
+use tokio::io::AsyncWriteExt;
 use tokio_util::codec::{Decoder, Encoder};
 
+use bytes::{Buf, BytesMut};
 use serde_json::{StreamDeserializer, de::SliceRead};
 use thiserror::Error;
+use tokio::{
+    io::{Join, Stdin, Stdout, stdin, stdout},
+    net::TcpStream,
+};
+
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio_util::codec::Framed;
+
+use crate::{Result, Stream};
+use futures_util::stream::StreamExt;
+
+pub type StdioStream = Join<Stdin, Stdout>;
 
 #[derive(Debug, Error)]
 pub enum CodecError {
@@ -41,6 +55,70 @@ impl Encoder<JsonrpcMessage> for McpFraming {
     fn encode(&mut self, item: JsonrpcMessage, dst: &mut BytesMut) -> Result<(), Self::Error> {
         serde_json::to_writer(dst.as_mut(), &item)?;
         dst.extend_from_slice(b"\n");
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct Conversation<T: Stream> {
+    stream: Arc<Mutex<Framed<T, McpFraming>>>,
+}
+
+impl Conversation<StdioStream> {
+    pub fn from_stdio() -> Self {
+        Self {
+            stream: Arc::new(Mutex::new(Framed::new(
+                tokio::io::join(stdin(), stdout()),
+                McpFraming,
+            ))),
+        }
+    }
+}
+
+impl Conversation<TcpStream> {
+    pub fn over_tcp(tcp: TcpStream) -> Self {
+        Self {
+            stream: Arc::new(Mutex::new(Framed::new(tcp, McpFraming))),
+        }
+    }
+}
+
+impl<T: Stream> Conversation<T> {
+    pub async fn run_to_completion(&mut self) -> Result<()> {
+        while let Some(msg) = self.stream.lock().await.next().await {
+            let msg = msg?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::net::TcpListener;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn my_test() -> anyhow::Result<()> {
+        let contents = include_str!("../testdata/basic");
+        let stream = TcpListener::bind("127.0.0.1:0").await?;
+        let port = stream.local_addr()?.port();
+
+        let sender = tokio::task::spawn(async move {
+            let mut client = TcpStream::connect(&format!("127.0.0.1:{port}")).await?;
+            client.write(contents.as_bytes()).await?;
+
+            anyhow::Result::<()>::Ok(())
+        });
+
+        let (client, _) = stream.accept().await?;
+
+        let mut conv = Conversation::over_tcp(client);
+
+        conv.run_to_completion().await?;
+
+        sender.await?;
+
         Ok(())
     }
 }
