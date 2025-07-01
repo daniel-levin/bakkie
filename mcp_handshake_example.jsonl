@@ -1,0 +1,11 @@
+{"jsonrpc": "2.0", "id": "1", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {"roots": {"listChanged": true}, "sampling": {}}, "clientInfo": {"name": "Example Client", "version": "1.0.0"}}}
+{"jsonrpc": "2.0", "id": "1", "result": {"protocolVersion": "2024-11-05", "capabilities": {"logging": {}, "tools": {"listChanged": true}, "resources": {"subscribe": true, "listChanged": true}, "prompts": {"listChanged": true}}, "serverInfo": {"name": "Example Server", "version": "1.0.0"}}}
+{"jsonrpc": "2.0", "method": "notifications/initialized"}
+{"jsonrpc": "2.0", "id": "2", "method": "tools/list"}
+{"jsonrpc": "2.0", "id": "2", "result": {"tools": [{"name": "get_weather", "description": "Get current weather for a location", "inputSchema": {"type": "object", "properties": {"location": {"type": "string", "description": "City name"}}, "required": ["location"]}}, {"name": "calculate", "description": "Perform mathematical calculations", "inputSchema": {"type": "object", "properties": {"expression": {"type": "string", "description": "Mathematical expression to evaluate"}}, "required": ["expression"]}}]}}
+{"jsonrpc": "2.0", "id": "3", "method": "resources/list"}
+{"jsonrpc": "2.0", "id": "3", "result": {"resources": [{"uri": "file://data/weather.json", "name": "Weather Data", "description": "Historical weather information", "mimeType": "application/json"}, {"uri": "file://docs/manual.md", "name": "User Manual", "description": "System documentation", "mimeType": "text/markdown"}]}}
+{"jsonrpc": "2.0", "id": "4", "method": "prompts/list"}
+{"jsonrpc": "2.0", "id": "4", "result": {"prompts": [{"name": "analyze_data", "description": "Analyze structured data with context", "arguments": [{"name": "data_type", "description": "Type of data to analyze", "required": true}]}, {"name": "summarize", "description": "Create summary of content", "arguments": [{"name": "content", "description": "Content to summarize", "required": true}, {"name": "max_length", "description": "Maximum summary length", "required": false}]}]}}
+{"jsonrpc": "2.0", "method": "notifications/tools/list_changed"}
+{"jsonrpc": "2.0", "method": "notifications/resources/list_changed"}

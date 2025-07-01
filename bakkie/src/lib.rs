@@ -8,6 +8,8 @@ use tokio::{
 use tokio_util::codec::{Decoder, Encoder};
 
 pub use bakkie_derive::{prompt, tool};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio_util::codec::Framed;
 
 use futures_util::stream::StreamExt;
@@ -42,13 +44,16 @@ enum BakkieErrorInternal {
 
 #[derive(Debug)]
 pub struct Conversation<T: Stream> {
-    stream: Framed<T, codec::McpFraming>,
+    stream: Arc<Mutex<Framed<T, codec::McpFraming>>>,
 }
 
 impl Conversation<StdioStream> {
     pub fn from_stdio() -> Self {
         Self {
-            stream: Framed::new(tokio::io::join(stdin(), stdout()), codec::McpFraming),
+            stream: Arc::new(Mutex::new(Framed::new(
+                tokio::io::join(stdin(), stdout()),
+                codec::McpFraming,
+            ))),
         }
     }
 }
@@ -56,15 +61,16 @@ impl Conversation<StdioStream> {
 impl Conversation<TcpStream> {
     pub fn over_tcp(tcp: TcpStream) -> Self {
         Self {
-            stream: Framed::new(tcp, codec::McpFraming),
+            stream: Arc::new(Mutex::new(Framed::new(tcp, codec::McpFraming))),
         }
     }
 }
 
 impl<T: Stream> Conversation<T> {
     pub async fn run_to_completion(&mut self) -> Result<()> {
-        while let Some(msg) = self.stream.next().await {
+        while let Some(msg) = self.stream.lock().await.next().await {
             let msg = msg?;
+            std::fs::write("poes", format!("{msg:?}")).unwrap();
         }
 
         Ok(())
