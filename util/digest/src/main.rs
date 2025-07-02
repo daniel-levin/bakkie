@@ -35,11 +35,12 @@ fn p() {
 #[derive(Debug)]
 #[bakkie::input]
 struct Payload {
-    p: u32,
+    name: String,
+    age: usize,
 }
 
 #[bakkie::tool("sha256")]
-async fn find_last_ten_logs(app: App<MyApp>, name: String) -> bakkie::Result<CallToolResult> {
+async fn find_last_ten_logs(app: App<MyApp>, p: Payload) -> bakkie::Result<CallToolResult> {
     let a = app.elicit(todo!()).await?;
 
     app.app.lock().await.store(200);
@@ -55,8 +56,21 @@ fn y(
         App {
             app: Arc::new(Mutex::new(Thing { stuff: vec![] })),
         },
-        "".into(),
+        todo!(),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a() {
+        let schema = bakkie::schemars::schema_for!(Payload);
+        let x = serde_json::to_string(&schema);
+
+        dbg!(x);
+    }
 }
 
 #[tokio::main]
