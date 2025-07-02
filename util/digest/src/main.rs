@@ -1,4 +1,4 @@
-use bakkie::{App, Argument, McpServer, schemars::JsonSchema};
+use bakkie::{App, McpServer};
 use bakkie_schema::CallToolResult;
 use std::{pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
@@ -41,7 +41,7 @@ struct Payload {
 
 #[bakkie::tool("sha256")]
 async fn find_last_ten_logs(app: App<MyApp>, p: Payload) -> bakkie::Result<CallToolResult> {
-    let a = app.elicit(todo!()).await?;
+    app.elicit(todo!()).await?;
 
     app.app.lock().await.store(200);
 
@@ -75,7 +75,10 @@ mod tests {
 
 #[tokio::main]
 async fn main() -> bakkie::Result<()> {
-    let server = McpServer::over_stdio();
+    let file_appender = tracing_appender::rolling::hourly(".", "prefix.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    tracing_subscriber::fmt().with_writer(non_blocking).init();
+    let mut server = McpServer::over_stdio();
 
     let _ = server.run().await;
 

@@ -1,6 +1,5 @@
 use bakkie_schema::JsonrpcMessage;
-use serde::Deserializer;
-use tokio::io::AsyncWriteExt;
+use futures::sink::SinkExt;
 use tokio_util::codec::{Decoder, Encoder};
 
 use bytes::{Buf, BytesMut};
@@ -12,8 +11,6 @@ use tokio::{
     net::TcpStream,
 };
 
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use tokio_util::codec::Framed;
 
 use crate::{Result, Stream};
@@ -63,7 +60,7 @@ impl Encoder<Frame> for McpFraming {
     type Error = CodecError;
 
     fn encode(&mut self, item: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        serde_json::to_writer(dst.as_mut(), &item)?;
+        dst.extend_from_slice(&serde_json::to_vec(&item)?);
         dst.extend_from_slice(b"\n");
         Ok(())
     }
@@ -71,13 +68,13 @@ impl Encoder<Frame> for McpFraming {
 
 #[derive(Debug)]
 pub struct Transport<T: Stream> {
-    stream: Mutex<Framed<T, McpFraming>>,
+    stream: Framed<T, McpFraming>,
 }
 
 impl Transport<StdioStream> {
     pub fn over_stdio() -> Self {
         Self {
-            stream: Mutex::new(Framed::new(tokio::io::join(stdin(), stdout()), McpFraming)),
+            stream: Framed::new(tokio::io::join(stdin(), stdout()), McpFraming),
         }
     }
 }
@@ -85,12 +82,22 @@ impl Transport<StdioStream> {
 impl Transport<TcpStream> {
     pub fn over_tcp(tcp: TcpStream) -> Self {
         Self {
-            stream: Mutex::new(Framed::new(tcp, McpFraming)),
+            stream: Framed::new(tcp, McpFraming),
         }
     }
 }
 
-impl<T: Stream> Transport<T> {}
+impl<T: Stream> Transport<T> {
+    pub async fn rx(&mut self) -> Option<Result<Frame, CodecError>> {
+        self.stream.next().await
+    }
+
+    pub async fn tx(&mut self, msg: JsonrpcMessage) -> Result<(), CodecError> {
+        self.stream.send(Frame::Single(msg)).await?;
+
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
