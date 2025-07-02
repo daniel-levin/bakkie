@@ -7,4 +7,7 @@ publish = false
 [dependencies]
 bakkie = "0.1"
 bakkie_schema = "0.1"
+bakkie_derive = "0.1"
 tokio = { version = "1.45.1", features = ["full"] }
+serde_json = "1.0.140"
+serde = { version = "1", features = ["derive"] }

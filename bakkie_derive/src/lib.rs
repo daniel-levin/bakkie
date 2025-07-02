@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{DeriveInput, parse_macro_input};
+use syn::{DeriveInput, parse_macro_input, parse_quote};
 
 #[proc_macro_attribute]
 pub fn tool(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -21,11 +21,36 @@ pub fn payload(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let expanded = quote! {
-    const _: () = {        #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
+        const _: () = {
+            #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
             #[schemars(crate = "bakkie::schemars")]
             #[serde(crate = "bakkie::serde")]
             #input
         };
-        };
+    };
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_attribute]
+pub fn input(args: TokenStream, input: TokenStream) -> TokenStream {
+    let mut input = parse_macro_input!(input as DeriveInput);
+
+    // Add serde derives to the existing derives
+    input
+        .attrs
+        .push(parse_quote!(#[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]));
+
+    input
+        .attrs
+        .push(parse_quote!(#[serde(crate = "bakkie::serde")]));
+
+    input
+        .attrs
+        .push(parse_quote!(#[schemars(crate = "bakkie::schemars")]));
+
+    let expanded = quote! {
+        #input
+    };
+
     TokenStream::from(expanded)
 }

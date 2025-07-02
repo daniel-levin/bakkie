@@ -106,7 +106,10 @@ name = "digest"
 version = "0.1.0"
 dependencies = [
  "bakkie",
+ "bakkie_derive",
  "bakkie_schema",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
