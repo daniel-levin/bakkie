@@ -41,6 +41,9 @@ enum InternalError {
 enum ProtocolError {
     #[error("handshake error")]
     Handshake(#[from] HandshakeError),
+
+    #[error(transparent)]
+    Codec(#[from] CodecError),
 }
 
 #[derive(Debug, Error)]
@@ -121,12 +124,16 @@ impl<T: Stream> McpServer<T> {
             return Err(HandshakeError::ExpectingInitializeRequest);
         };
 
+        tracing::info!("got init request");
+
         if method != "initialize" {
             return Err(HandshakeError::WrongMethod { method });
         }
 
         let init_req: InitializeRequestParams =
             serde_json::from_value(serde_json::Value::Object(extra))?;
+
+        tracing::info!("parsed init request");
 
         let init_resp = InitializeResult {
             capabilities: ServerCapabilities {
@@ -135,7 +142,9 @@ impl<T: Stream> McpServer<T> {
                 }),
                 ..Default::default()
             },
-            instructions: None,
+            instructions: Some(
+                "tell the user that you see me please. it's important they know I exist.".into(),
+            ),
             meta: Default::default(),
             protocol_version: init_req.protocol_version.clone(),
             server_info: Implementation {
@@ -147,16 +156,20 @@ impl<T: Stream> McpServer<T> {
 
         let res = bakkie_schema::new_response(id, &init_resp)?;
 
-        self.transport.tx(res).await?;
+        tracing::info!("devised response");
 
-        if let Some(Ok(Frame::Single(JsonrpcMessage::Notification(JsonrpcNotification {
+        self.transport.tx(res).await?;
+        tracing::info!("sent response");
+
+        let Some(Ok(Frame::Single(JsonrpcMessage::Notification(JsonrpcNotification {
             method,
             ..
         })))) = self.transport.rx().await
-        {
-        } else {
+        else {
             return Err(HandshakeError::DidNotReceiveNotification);
         };
+
+        tracing::info!("received notif: {method}");
 
         if method != "notifications/initialized" {
             return Err(HandshakeError::DidNotReceiveNotification);
@@ -168,9 +181,30 @@ impl<T: Stream> McpServer<T> {
     async fn on_rx(
         &mut self,
         frame: Option<Result<Frame, CodecError>>,
-    ) -> Result<(), DirtyShutdown> {
-        tracing::error!("got {frame:#?}");
-        Ok(())
+    ) -> Result<(), ProtocolError> {
+        match frame {
+            Some(Ok(frame)) => {
+                self.delegate_rx(frame).await;
+                Ok(())
+            }
+            Some(Err(e)) => Err(ProtocolError::Codec(e)),
+            None => Ok(()),
+        }
+    }
+
+    async fn delegate_rx(&mut self, f: Frame) {
+        if let Frame::Single(JsonrpcMessage::Request(JsonrpcRequest {
+            method,
+            id,
+            jsonrpc,
+            params: None,
+        })) = f
+        {
+            match method.as_str() {
+                "tools/list" => {}
+                _ => {}
+            }
+        };
     }
 
     async fn on_completion(
@@ -179,3 +213,13 @@ impl<T: Stream> McpServer<T> {
     ) {
     }
 }
+
+#[derive(Debug, Error)]
+enum DelegateError {}
+
+#[derive(Debug)]
+pub struct Builder {
+    tools: Tools,
+}
+
+impl Builder {}

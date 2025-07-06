@@ -1,18 +1,46 @@
-use bakkie_schema::CallToolResult;
+use bakkie_schema::{CallToolRequestParams, CallToolResult};
+use schemars::Schema;
+use serde::Serialize;
+use serde_json::{Map, Value};
 use std::{collections::HashMap, pin::Pin};
+use thiserror::Error;
 
-type Tool = fn(u32) -> Pin<Box<dyn Future<Output = crate::Result<CallToolResult>> + Send>>;
+#[derive(Debug)]
+pub struct ToolOutput {}
+
+#[derive(Debug, Error)]
+pub enum ToolError {}
+
+#[derive(Debug, Serialize)]
+pub struct Tool {
+    pub name: String,
+    pub title: String,
+    pub description: String,
+
+    #[serde(rename = "inputSchema")]
+    pub input_schema: Schema,
+
+    #[serde(skip)]
+    pub construct_fn: ConstructTool,
+}
+
+pub type ConstructTool = fn(Map<String, Value>) -> ToolFut;
+
+pub type ToolFut = Pin<Box<dyn Future<Output = Result<ToolOutput, ToolError>> + Send>>;
 
 #[derive(Debug, Default)]
-pub struct Tools {
+pub(crate) struct Tools {
     registry: HashMap<String, Tool>,
 }
 
 impl Tools {
-    pub fn delegate(&self, tool: &str, serde: u32) {
-        if let Some(x) = self.registry.get(tool) {
-            let fut = x(1);
-            tokio::task::spawn(fut);
+    /// Inject the request body into a future that may be awaited, if such a tool exists.
+    pub fn prepare_future(&self, request: CallToolRequestParams) -> Option<ToolFut> {
+        if let Some(tool) = self.registry.get(&request.name) {
+            let fut = (tool.construct_fn)(request.arguments);
+            Some(fut)
+        } else {
+            None
         }
     }
 }

@@ -8,7 +8,7 @@ use bakkie_schema::ElicitRequestParams;
 pub(crate) mod codec;
 pub(crate) mod proto;
 pub(crate) mod server;
-pub(crate) mod tool;
+pub mod tool;
 
 pub use server::McpServer;
 
