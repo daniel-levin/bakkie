@@ -20,7 +20,10 @@ bakkie_schema = "0.1"
 schemars = "1.0.3"
 tracing = "0.1"
 futures = "0.3.31"
+strum = { version = "0.27", features = ["derive"] }
+monostate = "0.1.14"
 
 [dev-dependencies]
 anyhow = "1"
 insta = { version = "1", features = ["serde", "json"] }
+tracing-subscriber = "0.3"

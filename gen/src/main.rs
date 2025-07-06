@@ -3,7 +3,7 @@ use std::fs;
 use typify::{TypeSpace, TypeSpaceSettings};
 
 fn main() -> anyhow::Result<()> {
-    let content = include_str!("../../schema/2026-06-18.json");
+    let content = include_str!("../../schema/2025-03-26.json");
     let schema = serde_json::from_str::<schemars::schema::RootSchema>(content)?;
 
     let mut type_space = TypeSpace::new(TypeSpaceSettings::default().with_struct_builder(true));

@@ -5,7 +5,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 pub use bakkie_derive::{Argument, input, prompt, tool};
 use bakkie_schema::ElicitRequestParams;
 
-pub mod codec;
+pub mod framing;
 pub(crate) mod proto;
 pub(crate) mod server;
 pub mod tool;
@@ -41,7 +41,7 @@ pub type Result<T, E = BakkieError> = std::result::Result<T, E>;
 #[derive(Debug, Error)]
 enum BakkieErrorInternal {
     #[error(transparent)]
-    CodecError(#[from] codec::CodecError),
+    CodecError(#[from] framing::CodecError),
 }
 
 #[derive(Debug)]

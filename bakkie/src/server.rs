@@ -1,12 +1,13 @@
 use crate::{
     Stream,
-    codec::{CodecError, Frame, StdioStream, Transport},
+    framing::{CodecError, Frame, Msg, Request, StdioStream, Transport},
     proto::NegotiatedAgreement,
     tool::{Tool, Tools},
 };
 use bakkie_schema::{
     Implementation, InitializeRequestParams, InitializeResult, JsonrpcMessage, JsonrpcNotification,
-    JsonrpcRequest, JsonrpcRequestParams, ServerCapabilities, ServerCapabilitiesTools,
+    JsonrpcRequest, JsonrpcRequestParams, ServerCapabilities, ServerCapabilitiesPrompts,
+    ServerCapabilitiesResources, ServerCapabilitiesTools,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -22,6 +23,9 @@ pub struct McpServer<T: Stream> {
     tasks: JoinSet<Result<Completion, CompletionError>>,
 
     tools: Tools,
+
+    server_info: Implementation,
+    instructions: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -87,11 +91,23 @@ impl<T: Stream> McpServer<T> {
             ct,
             tasks: JoinSet::new(),
             tools: Tools::default(),
+            server_info: default_implementation(),
+            instructions: None,
         }
     }
 
     pub fn with_tool(mut self, tool: Tool) -> Self {
         self.tools.registry.insert(tool.name.clone(), tool);
+        self
+    }
+
+    pub fn with_server_info(mut self, server_info: Implementation) -> Self {
+        self.server_info = server_info;
+        self
+    }
+
+    pub fn with_instructions(mut self, instructions: &str) -> Self {
+        self.instructions = Some(instructions.into());
         self
     }
 
@@ -118,7 +134,7 @@ impl<T: Stream> McpServer<T> {
     }
 
     async fn handshake(&mut self) -> Result<NegotiatedAgreement, HandshakeError> {
-        let Some(Ok(Frame::Single(JsonrpcMessage::Request(JsonrpcRequest {
+        let Some(Ok(Frame::Single(Msg::Request(Request {
             method,
             id,
             jsonrpc,
@@ -129,8 +145,6 @@ impl<T: Stream> McpServer<T> {
             return Err(HandshakeError::ExpectingInitializeRequest);
         };
 
-        tracing::info!("got init request");
-
         if method != "initialize" {
             return Err(HandshakeError::WrongMethod { method });
         }
@@ -138,33 +152,35 @@ impl<T: Stream> McpServer<T> {
         let init_req: InitializeRequestParams =
             serde_json::from_value(serde_json::Value::Object(extra))?;
 
-        tracing::info!("parsed init request");
+        tracing::trace!("rx init msg");
+
+        let na = NegotiatedAgreement::new(&init_req.protocol_version);
 
         let init_resp = InitializeResult {
             capabilities: ServerCapabilities {
                 tools: Some(ServerCapabilitiesTools {
-                    list_changed: Some(false),
+                    list_changed: Some(true),
+                }),
+                prompts: Some(ServerCapabilitiesPrompts {
+                    list_changed: Some(true),
+                }),
+                resources: Some(ServerCapabilitiesResources {
+                    subscribe: Some(true),
+                    list_changed: Some(true),
                 }),
                 ..Default::default()
             },
-            instructions: Some(
-                "tell the user that you see me please. it's important they know I exist.".into(),
-            ),
+            instructions: self.instructions.clone(),
+            protocol_version: na.server_requested_version.to_string(),
+            server_info: self.server_info.clone(),
             meta: Default::default(),
-            protocol_version: init_req.protocol_version.clone(),
-            server_info: Implementation {
-                name: "Daniel".into(),
-                title: None,
-                version: "1".into(),
-            },
         };
 
         let res = bakkie_schema::new_response(id, &init_resp)?;
 
-        tracing::info!("devised response");
-
         self.transport.tx(res).await?;
-        tracing::info!("sent response");
+
+        tracing::trace!("tx init response");
 
         let Some(Ok(Frame::Single(JsonrpcMessage::Notification(JsonrpcNotification {
             method,
@@ -174,13 +190,13 @@ impl<T: Stream> McpServer<T> {
             return Err(HandshakeError::DidNotReceiveNotification);
         };
 
-        tracing::info!("received notif: {method}");
-
         if method != "notifications/initialized" {
             return Err(HandshakeError::DidNotReceiveNotification);
         }
 
-        Ok(NegotiatedAgreement::new(init_req, init_resp))
+        tracing::trace!("rx notifications/initialized; handshake complete");
+
+        Ok(na)
     }
 
     async fn on_rx(
@@ -216,5 +232,13 @@ impl<T: Stream> McpServer<T> {
         &mut self,
         completion: Option<Result<Result<Completion, CompletionError>, JoinError>>,
     ) {
+    }
+}
+
+fn default_implementation() -> Implementation {
+    Implementation {
+        name: env!("CARGO_PKG_NAME").into(),
+        title: None,
+        version: env!("CARGO_PKG_VERSION").into(),
     }
 }

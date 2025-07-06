@@ -1,5 +1,6 @@
 use bakkie_schema::JsonrpcMessage;
 use futures::sink::SinkExt;
+use serde_json::{Map, Value};
 use tokio_util::codec::{Decoder, Encoder};
 
 use bytes::{Buf, BytesMut};
@@ -27,14 +28,6 @@ pub enum CodecError {
     JsonError(#[from] serde_json::Error),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Frame {
-    Batch(Vec<JsonrpcMessage>),
-
-    Single(JsonrpcMessage),
-}
-
 #[derive(Debug)]
 pub struct McpFraming;
 
@@ -47,12 +40,17 @@ impl Decoder for McpFraming {
 
         match sd.next() {
             Some(Ok(msg)) => {
-                tracing::trace!("{}", std::str::from_utf8(src).unwrap());
                 src.advance(sd.byte_offset());
                 Ok(Some(msg))
             }
-            Some(Err(e)) => Err(e)?,
-            None => Ok(None),
+            Some(Err(e)) => {
+                if !e.is_eof() {
+                    Err(e)?
+                } else {
+                    Ok(None)
+                }
+            }
+            _ => Ok(None),
         }
     }
 }
@@ -99,17 +97,72 @@ impl<T: Stream> Transport<T> {
         self.stream.next().await
     }
 
-    pub async fn tx(&mut self, msg: JsonrpcMessage) -> Result<(), CodecError> {
+    pub async fn tx(&mut self, msg: Msg) -> Result<(), CodecError> {
         self.stream.send(Frame::Single(msg)).await?;
 
         Ok(())
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Frame {
+    Batch(Vec<Msg>),
+
+    Single(Msg),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RequestId {
+    String(String),
+    Integer(i64),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Msg {
+    Request(Request),
+    Notification(Notification),
+    Response(Response),
+    Error(Error),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Request {
+    pub jsonrpc: monostate::MustBe!("2.0"),
+    pub method: String,
+    pub params: Value,
+    pub id: RequestId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Notification {
+    pub jsonrpc: monostate::MustBe!("2.0"),
+    pub method: String,
+
+    #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+    pub params: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Response {
+    pub jsonrpc: monostate::MustBe!("2.0"),
+    pub result: Value,
+    pub id: RequestId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Error {
+    pub jsonrpc: monostate::MustBe!("2.0"),
+    pub error: Value,
+    pub id: RequestId,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::net::TcpListener;
+    use tokio::{io::AsyncWriteExt, net::TcpListener};
 
     #[test]
     fn framing() {
@@ -129,5 +182,29 @@ mod tests {
         ) else {
             panic!("must match")
         };
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn roundtrip() -> anyhow::Result<()> {
+        let input = include_bytes!("../testdata/items.jsonl");
+
+        let (mut tc, ts) = tokio::io::duplex(512_000);
+
+        tc.write_all(input).await?;
+
+        let mut t = Transport::new(ts);
+
+        let mut frames = vec![];
+        for _ in 1..=11 {
+            if let Some(rf) = t.rx().await {
+                if let Ok(frame) = rf {
+                    frames.push(frame);
+                } else {
+                    anyhow::bail!("{}", frames.len());
+                }
+            }
+        }
+
+        Ok(())
     }
 }

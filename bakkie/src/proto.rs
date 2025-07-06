@@ -1,16 +1,44 @@
 use bakkie_schema::{InitializeRequestParams, InitializeResult};
+use std::str::FromStr;
+use strum::{Display, EnumString};
+
+#[derive(Debug, Display, EnumString)]
+pub enum Version {
+    #[strum(serialize = "2024-11-05")]
+    V20241105,
+
+    #[strum(serialize = "2025-03-26")]
+    V20250326,
+
+    #[strum(serialize = "2025-06-18")]
+    V20250618,
+}
+
+#[derive(Debug)]
+pub enum ClientVersion {
+    Known(Version),
+
+    Unknown(String),
+}
 
 #[derive(Debug)]
 pub struct NegotiatedAgreement {
-    pub init_req: InitializeRequestParams,
-    pub init_resp: InitializeResult,
+    pub client_requested_version: ClientVersion,
+    pub server_requested_version: Version,
 }
 
 impl NegotiatedAgreement {
-    pub fn new(init_req: InitializeRequestParams, init_resp: InitializeResult) -> Self {
-        Self {
-            init_req,
-            init_resp,
+    pub fn new(requested_version: &str) -> Self {
+        if let Ok(known_version) = Version::from_str(requested_version) {
+            Self {
+                client_requested_version: ClientVersion::Known(known_version),
+                server_requested_version: Version::V20250618,
+            }
+        } else {
+            Self {
+                client_requested_version: ClientVersion::Unknown(requested_version.into()),
+                server_requested_version: Version::V20250618,
+            }
         }
     }
 }
