@@ -1,4 +1,4 @@
-use bakkie::{App, McpServer};
+use bakkie::{App, McpServer, tool::Tool};
 use bakkie_schema::CallToolResult;
 use std::{pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
@@ -82,7 +82,19 @@ async fn main() -> bakkie::Result<()> {
         .with_writer(non_blocking)
         .init();
 
-    let mut server = McpServer::over_stdio();
+    let t = Tool {
+        name: "sha256".into(),
+        title: "sha256 hasher".into(),
+        description: "hashes input with sha256".into(),
+        input_schema: bakkie::schemars::schema_for!(String),
+        construct_fn: |obj| {
+            Box::pin(async {
+                todo!();
+            })
+        },
+    };
+
+    let mut server = McpServer::over_stdio().with_tool(t);
 
     let _ = server.run().await;
 

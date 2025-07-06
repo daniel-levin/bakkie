@@ -18,7 +18,7 @@ pub struct Tool {
     pub description: String,
 
     #[serde(rename = "inputSchema")]
-    pub input_schema: Schema,
+    pub input_schema: crate::schemars::Schema,
 
     #[serde(skip)]
     pub construct_fn: ConstructTool,
@@ -30,7 +30,7 @@ pub type ToolFut = Pin<Box<dyn Future<Output = Result<ToolOutput, ToolError>> + 
 
 #[derive(Debug, Default)]
 pub(crate) struct Tools {
-    registry: HashMap<String, Tool>,
+    pub registry: HashMap<String, Tool>,
 }
 
 impl Tools {

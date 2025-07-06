@@ -89,6 +89,12 @@ impl Transport<TcpStream> {
 }
 
 impl<T: Stream> Transport<T> {
+    pub fn new(t: T) -> Self {
+        Self {
+            stream: Framed::new(t, McpFraming),
+        }
+    }
+
     pub async fn rx(&mut self) -> Option<Result<Frame, CodecError>> {
         self.stream.next().await
     }

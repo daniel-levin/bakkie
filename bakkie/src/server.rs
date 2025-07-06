@@ -2,7 +2,7 @@ use crate::{
     Stream,
     codec::{CodecError, Frame, StdioStream, Transport},
     proto::NegotiatedAgreement,
-    tool::Tools,
+    tool::{Tool, Tools},
 };
 use bakkie_schema::{
     Implementation, InitializeRequestParams, InitializeResult, JsonrpcMessage, JsonrpcNotification,
@@ -88,6 +88,11 @@ impl<T: Stream> McpServer<T> {
             tasks: JoinSet::new(),
             tools: Tools::default(),
         }
+    }
+
+    pub fn with_tool(mut self, tool: Tool) -> Self {
+        self.tools.registry.insert(tool.name.clone(), tool);
+        self
     }
 
     pub async fn run(&mut self) -> Result<(), DirtyShutdown> {
@@ -213,13 +218,3 @@ impl<T: Stream> McpServer<T> {
     ) {
     }
 }
-
-#[derive(Debug, Error)]
-enum DelegateError {}
-
-#[derive(Debug)]
-pub struct Builder {
-    tools: Tools,
-}
-
-impl Builder {}
