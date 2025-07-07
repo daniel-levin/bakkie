@@ -104,7 +104,7 @@ impl<T: Stream> Transport<T> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Frame {
     Batch(Vec<Msg>),
@@ -112,14 +112,14 @@ pub enum Frame {
     Single(Msg),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum RequestId {
     String(String),
     Integer(i64),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Msg {
     Request(Request),
@@ -128,7 +128,7 @@ pub enum Msg {
     Error(Error),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Request {
     pub jsonrpc: monostate::MustBe!("2.0"),
     pub method: String,
@@ -136,7 +136,7 @@ pub struct Request {
     pub id: RequestId,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Notification {
     pub jsonrpc: monostate::MustBe!("2.0"),
     pub method: String,
@@ -145,14 +145,14 @@ pub struct Notification {
     pub params: Option<Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Response {
     pub jsonrpc: monostate::MustBe!("2.0"),
     pub result: Value,
     pub id: RequestId,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Error {
     pub jsonrpc: monostate::MustBe!("2.0"),
     pub error: Value,
@@ -185,25 +185,70 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn roundtrip() -> anyhow::Result<()> {
+    async fn basic() -> anyhow::Result<()> {
         let input = include_bytes!("../testdata/items.jsonl");
 
-        let (mut tc, ts) = tokio::io::duplex(512_000);
+        let frames = include_str!("../testdata/items.jsonl")
+            .split("\n")
+            .filter(|l| !l.is_empty())
+            .map(|l| serde_json::from_str::<Frame>(l).unwrap())
+            .collect::<Vec<Frame>>();
 
-        tc.write_all(input).await?;
+        let (mut tc, ts) = tokio::io::duplex(64);
+
+        tokio::task::spawn(async move {
+            for b in input {
+                let _ = tc.write(&[*b]).await;
+            }
+        });
 
         let mut t = Transport::new(ts);
 
-        let mut frames = vec![];
-        for _ in 1..=11 {
-            if let Some(rf) = t.rx().await {
-                if let Ok(frame) = rf {
-                    frames.push(frame);
-                } else {
-                    anyhow::bail!("{}", frames.len());
-                }
-            }
+        let mut rx_frames = vec![];
+
+        while let Some(Ok(frame)) = t.rx().await {
+            rx_frames.push(frame);
         }
+
+        assert_eq!(frames, rx_frames);
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn malformed_json() -> anyhow::Result<()> {
+        let (mut tc, ts) = tokio::io::duplex(64);
+
+        tokio::task::spawn(async move {
+            let _ = tc.write("}}".as_bytes()).await;
+        });
+
+        let mut t = Transport::new(ts);
+
+        let r = t.rx().await;
+
+        assert!(matches!(r, Some(Err(CodecError::JsonError(_)))));
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn malformed_json_rpc() -> anyhow::Result<()> {
+        let (mut tc, ts) = tokio::io::duplex(64);
+
+        tokio::task::spawn(async move {
+            let _ = tc
+                .write(r#"{"jsonrpc": "1.0", "method": "a", "id": "1", "params": {}}"#.as_bytes())
+                .await;
+        });
+
+        let mut t = Transport::new(ts);
+
+        let r = t.rx().await;
+
+        dbg!(&r);
+
+        assert!(matches!(r, Some(Err(CodecError::JsonError(_)))));
 
         Ok(())
     }

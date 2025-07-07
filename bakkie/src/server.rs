@@ -112,10 +112,10 @@ impl<T: Stream> McpServer<T> {
     }
 
     pub async fn run(&mut self) -> Result<(), DirtyShutdown> {
-        let na = self
-            .handshake()
-            .await
-            .map_err(|e| InternalError::Protocol(ProtocolError::Handshake(e)))?;
+        /*let na = self
+        .handshake()
+        .await
+        .map_err(|e| InternalError::Protocol(ProtocolError::Handshake(e)))?;*/
 
         while !self.ct.is_cancelled() {
             let rx = self.transport.rx();
@@ -133,6 +133,7 @@ impl<T: Stream> McpServer<T> {
         Ok(())
     }
 
+    /*
     async fn handshake(&mut self) -> Result<NegotiatedAgreement, HandshakeError> {
         let Some(Ok(Frame::Single(Msg::Request(Request {
             method,
@@ -197,7 +198,7 @@ impl<T: Stream> McpServer<T> {
         tracing::trace!("rx notifications/initialized; handshake complete");
 
         Ok(na)
-    }
+    }*/
 
     async fn on_rx(
         &mut self,
@@ -213,20 +214,7 @@ impl<T: Stream> McpServer<T> {
         }
     }
 
-    async fn delegate_rx(&mut self, f: Frame) {
-        if let Frame::Single(JsonrpcMessage::Request(JsonrpcRequest {
-            method,
-            id,
-            jsonrpc,
-            params: None,
-        })) = f
-        {
-            match method.as_str() {
-                "tools/list" => {}
-                _ => {}
-            }
-        };
-    }
+    async fn delegate_rx(&mut self, f: Frame) {}
 
     async fn on_completion(
         &mut self,

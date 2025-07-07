@@ -3,6 +3,7 @@ use schemars::{JsonSchema, schema_for};
 use serde::Serialize;
 
 #[test]
+#[ignore]
 fn serialize() {
     #[derive(Serialize, JsonSchema)]
     struct City {

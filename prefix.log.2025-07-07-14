@@ -1,0 +1,6 @@
+[2m2025-07-07T14:34:06.925101Z[0m [35mTRACE[0m [2mbakkie::server[0m[2m:[0m rx init msg
+[2m2025-07-07T14:34:06.931838Z[0m [35mTRACE[0m [2mbakkie::server[0m[2m:[0m tx init response
+[2m2025-07-07T14:34:07.031728Z[0m [35mTRACE[0m [2mbakkie::server[0m[2m:[0m rx notifications/initialized; handshake complete
+[2m2025-07-07T14:35:22.045930Z[0m [35mTRACE[0m [2mbakkie::server[0m[2m:[0m rx init msg
+[2m2025-07-07T14:35:22.046447Z[0m [35mTRACE[0m [2mbakkie::server[0m[2m:[0m tx init response
+[2m2025-07-07T14:35:22.134550Z[0m [35mTRACE[0m [2mbakkie::server[0m[2m:[0m rx notifications/initialized; handshake complete
