@@ -1,6 +1,40 @@
+use crate::framing::{CodecError, Frame};
 use bakkie_schema::{InitializeRequestParams, InitializeResult};
 use std::str::FromStr;
 use strum::{Display, EnumString};
+use thiserror::Error;
+
+pub mod V20250618;
+
+pub trait Mcp {
+    async fn handshake(&mut self) -> Result<NegotiatedAgreement, HandshakeError>;
+
+    async fn on_rx(&mut self, frame: Option<Result<Frame, CodecError>>) -> Result<(), RxError>;
+}
+
+#[derive(Debug, Error)]
+pub enum HandshakeError {
+    #[error("did not received expected 'initialize' request")]
+    ExpectingInitializeRequest,
+
+    #[error("method '{method}' called in handshake when 'initialize' was expected")]
+    WrongMethod { method: String },
+
+    #[error("noncompliant handshake received")]
+    JsonError(#[from] serde_json::Error),
+
+    #[error(transparent)]
+    CannotAllocResponse(#[from] bakkie_schema::ResponseSerializeError),
+
+    #[error(transparent)]
+    Codec(#[from] CodecError),
+
+    #[error("did not receive notification")]
+    DidNotReceiveNotification,
+}
+
+#[derive(Debug, Error)]
+pub enum RxError {}
 
 #[derive(Debug, Display, EnumString)]
 pub enum Version {

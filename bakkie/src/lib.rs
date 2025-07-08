@@ -6,7 +6,7 @@ pub use bakkie_derive::{Argument, input, prompt, tool};
 use bakkie_schema::ElicitRequestParams;
 
 pub mod framing;
-pub(crate) mod proto;
+pub mod proto;
 pub(crate) mod server;
 pub mod tool;
 

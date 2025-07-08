@@ -14,19 +14,11 @@ use thiserror::Error;
 use tokio::task::{JoinError, JoinSet};
 use tokio_util::sync::CancellationToken;
 
+use crate::{
+    proto,
+    proto::{HandshakeError, Mcp},
+};
 use bakkie_schema::RequestId;
-
-#[derive(Debug)]
-pub struct McpServer<T: Stream> {
-    transport: Transport<T>,
-    ct: CancellationToken,
-    tasks: JoinSet<Result<Completion, CompletionError>>,
-
-    tools: Tools,
-
-    server_info: Implementation,
-    instructions: Option<String>,
-}
 
 #[derive(Debug, Error)]
 #[error("server shut down with error")]
@@ -50,79 +42,45 @@ enum ProtocolError {
     Codec(#[from] CodecError),
 }
 
-#[derive(Debug, Error)]
-enum HandshakeError {
-    #[error("did not received expected 'initialize' request")]
-    ExpectingInitializeRequest,
-
-    #[error("method '{method}' called in handshake when 'initialize' was expected")]
-    WrongMethod { method: String },
-
-    #[error("noncompliant handshake received")]
-    JsonError(#[from] serde_json::Error),
-
-    #[error(transparent)]
-    CannotAllocResponse(#[from] bakkie_schema::ResponseSerializeError),
-
-    #[error(transparent)]
-    Codec(#[from] CodecError),
-
-    #[error("did not receive notification")]
-    DidNotReceiveNotification,
-}
-
 #[derive(Debug)]
 pub(crate) enum Completion {}
 
 #[derive(Debug, Error)]
 pub enum CompletionError {}
 
-impl McpServer<StdioStream> {
-    pub fn over_stdio() -> Self {
-        Self::new(Transport::over_stdio())
-    }
+#[derive(Debug)]
+pub struct McpServer<T: Stream, M: Mcp = proto::V20250618::McpServerImpl> {
+    transport: Transport<T>,
+    mcp: M,
+
+    ct: CancellationToken,
+    tasks: JoinSet<Result<Completion, CompletionError>>,
 }
 
-impl<T: Stream> McpServer<T> {
-    pub fn new(transport: Transport<T>) -> Self {
+impl<T: Stream, M: Mcp> McpServer<T, M> {
+    pub fn new(transport: Transport<T>, mcp: M) -> Self {
         let ct = CancellationToken::new();
         Self {
             transport,
             ct,
+            mcp: mcp,
             tasks: JoinSet::new(),
-            tools: Tools::default(),
-            server_info: default_implementation(),
-            instructions: None,
         }
     }
 
-    pub fn with_tool(mut self, tool: Tool) -> Self {
-        self.tools.registry.insert(tool.name.clone(), tool);
-        self
-    }
-
-    pub fn with_server_info(mut self, server_info: Implementation) -> Self {
-        self.server_info = server_info;
-        self
-    }
-
-    pub fn with_instructions(mut self, instructions: &str) -> Self {
-        self.instructions = Some(instructions.into());
-        self
-    }
-
     pub async fn run(&mut self) -> Result<(), DirtyShutdown> {
-        /*let na = self
-        .handshake()
-        .await
-        .map_err(|e| InternalError::Protocol(ProtocolError::Handshake(e)))?;*/
+        let na = self
+            .mcp
+            .handshake()
+            .await
+            .map_err(|e| InternalError::Protocol(ProtocolError::Handshake(e)))?;
 
         while !self.ct.is_cancelled() {
             let rx = self.transport.rx();
             let task_finish = self.tasks.join_next();
             tokio::select! {
                 frame = rx => {
-                    self.on_rx(frame).await;
+                    self.mcp.on_rx(frame).await;
                 }
                 completion = task_finish => {
                     self.on_completion(completion).await;
@@ -220,6 +178,15 @@ impl<T: Stream> McpServer<T> {
         &mut self,
         completion: Option<Result<Result<Completion, CompletionError>, JoinError>>,
     ) {
+    }
+}
+
+impl McpServer<StdioStream, proto::V20250618::McpServerImpl> {
+    pub fn over_stdio() -> Self {
+        Self::new(
+            Transport::over_stdio(),
+            proto::V20250618::McpServerImpl::default(),
+        )
     }
 }
 

@@ -94,7 +94,7 @@ async fn main() -> bakkie::Result<()> {
         },
     };
 
-    let mut server = McpServer::over_stdio().with_tool(t);
+    let mut server = McpServer::over_stdio();
 
     let _ = server.run().await;
 
