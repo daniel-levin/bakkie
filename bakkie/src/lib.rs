@@ -1,16 +1,9 @@
 use thiserror::Error;
 
-use tokio::io::{AsyncRead, AsyncWrite};
-
-pub use bakkie_derive::{Argument, input, prompt, tool};
-use bakkie_schema::V20250618::ElicitRequestParams;
+pub use bakkie_derive::{Argument, input};
 
 pub mod framing;
 pub mod proto;
-pub(crate) mod server;
-pub mod tool;
-
-pub use server::McpServer;
 
 pub mod schemars {
     pub use schemars::*;
@@ -19,10 +12,6 @@ pub mod schemars {
 pub mod serde {
     pub use serde::*;
 }
-
-pub trait Stream: AsyncRead + AsyncWrite + Unpin + Send + Sync + 'static {}
-
-impl<T> Stream for T where T: AsyncRead + AsyncWrite + Unpin + Send + Sync + 'static {}
 
 #[derive(Debug, Error)]
 #[error(transparent)]
@@ -42,15 +31,4 @@ pub type Result<T, E = BakkieError> = std::result::Result<T, E>;
 enum BakkieErrorInternal {
     #[error(transparent)]
     CodecError(#[from] framing::CodecError),
-}
-
-#[derive(Debug)]
-pub struct App<T: Clone> {
-    pub app: T,
-}
-
-impl<T: Clone> App<T> {
-    pub async fn elicit(&self, r: ElicitRequestParams) -> Result<()> {
-        Ok(())
-    }
 }

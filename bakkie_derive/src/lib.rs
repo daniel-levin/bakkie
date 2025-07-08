@@ -2,20 +2,6 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{DeriveInput, parse_macro_input, parse_quote};
 
-#[proc_macro_attribute]
-pub fn tool(attr: TokenStream, item: TokenStream) -> TokenStream {
-    println!("attr: \"{attr}\"");
-    println!("item: \"{item}\"");
-    item
-}
-
-#[proc_macro_attribute]
-pub fn prompt(attr: TokenStream, item: TokenStream) -> TokenStream {
-    println!("attr: \"{attr}\"");
-    println!("item: \"{item}\"");
-    item
-}
-
 #[proc_macro_derive(Argument)]
 pub fn payload(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -32,7 +18,7 @@ pub fn payload(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn input(args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn input(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(input as DeriveInput);
 
     // Add serde derives to the existing derives

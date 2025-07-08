@@ -1,15 +1,10 @@
-use crate::framing::{CodecError, Frame};
+use crate::framing::CodecError;
 use std::str::FromStr;
 use strum::{Display, EnumString};
 use thiserror::Error;
 
+#[allow(non_snake_case)]
 pub mod V20250618;
-
-pub trait Mcp {
-    async fn handshake(&mut self) -> Result<NegotiatedAgreement, HandshakeError>;
-
-    async fn rx_frame(&mut self, frame: Frame) -> Result<(), RxError>;
-}
 
 #[derive(Debug, Error)]
 pub enum HandshakeError {
@@ -23,17 +18,11 @@ pub enum HandshakeError {
     JsonError(#[from] serde_json::Error),
 
     #[error(transparent)]
-    CannotAllocResponse(#[from] bakkie_schema::ResponseSerializeError),
-
-    #[error(transparent)]
     Codec(#[from] CodecError),
 
     #[error("did not receive notification")]
     DidNotReceiveNotification,
 }
-
-#[derive(Debug, Error)]
-pub enum RxError {}
 
 #[derive(Debug, Display, EnumString)]
 pub enum Version {

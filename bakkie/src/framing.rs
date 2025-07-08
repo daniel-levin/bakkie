@@ -1,4 +1,3 @@
-use futures::sink::SinkExt;
 use serde_json::Value;
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -6,17 +5,19 @@ use bytes::{Buf, BytesMut};
 use serde::{Deserialize, Serialize};
 use serde_json::{StreamDeserializer, de::SliceRead};
 use thiserror::Error;
-use tokio::{
-    io::{Join, Stdin, Stdout, stdin, stdout},
-    net::TcpStream,
-};
+use tokio::io::{AsyncRead, AsyncWrite, Join, Stdin, Stdout};
 
 use tokio_util::codec::Framed;
 
-use crate::{Result, Stream};
-use futures_util::stream::StreamExt;
+pub trait Transport: AsyncRead + AsyncWrite + Sized + Unpin + Send + Sync + 'static {
+    fn into_framed(self) -> Framed<Self, McpFraming> {
+        Framed::new(self, McpFraming)
+    }
+}
 
-pub type StdioStream = Join<Stdin, Stdout>;
+impl<T> Transport for T where T: AsyncRead + AsyncWrite + Sized + Unpin + Send + Sync + 'static {}
+
+pub type StdioTransport = Join<Stdin, Stdout>;
 
 #[derive(Debug, Error)]
 pub enum CodecError {
@@ -60,45 +61,6 @@ impl Encoder<Frame> for McpFraming {
     fn encode(&mut self, item: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
         dst.extend_from_slice(&serde_json::to_vec(&item)?);
         dst.extend_from_slice(b"\n");
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct Transport<T: Stream> {
-    stream: Framed<T, McpFraming>,
-}
-
-impl Transport<StdioStream> {
-    pub fn over_stdio() -> Self {
-        Self {
-            stream: Framed::new(tokio::io::join(stdin(), stdout()), McpFraming),
-        }
-    }
-}
-
-impl Transport<TcpStream> {
-    pub fn over_tcp(tcp: TcpStream) -> Self {
-        Self {
-            stream: Framed::new(tcp, McpFraming),
-        }
-    }
-}
-
-impl<T: Stream> Transport<T> {
-    pub fn new(t: T) -> Self {
-        Self {
-            stream: Framed::new(t, McpFraming),
-        }
-    }
-
-    pub async fn rx(&mut self) -> Option<Result<Frame, CodecError>> {
-        self.stream.next().await
-    }
-
-    pub async fn tx(&mut self, msg: Msg) -> Result<(), CodecError> {
-        self.stream.send(Frame::Single(msg)).await?;
-
         Ok(())
     }
 }
@@ -170,7 +132,8 @@ pub struct Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::{io::AsyncWriteExt, net::TcpListener};
+    use futures::stream::StreamExt;
+    use tokio::io::AsyncWriteExt;
 
     #[test]
     fn framing() {
@@ -210,11 +173,11 @@ mod tests {
             }
         });
 
-        let mut t = Transport::new(ts);
+        let mut t = ts.into_framed();
 
         let mut rx_frames = vec![];
 
-        while let Some(Ok(frame)) = t.rx().await {
+        while let Some(Ok(frame)) = t.next().await {
             rx_frames.push(frame);
         }
 
@@ -231,9 +194,9 @@ mod tests {
             let _ = tc.write("}}".as_bytes()).await;
         });
 
-        let mut t = Transport::new(ts);
+        let mut t = ts.into_framed();
 
-        let r = t.rx().await;
+        let r = t.next().await;
 
         assert!(matches!(r, Some(Err(CodecError::JsonError(_)))));
 
@@ -250,11 +213,9 @@ mod tests {
                 .await;
         });
 
-        let mut t = Transport::new(ts);
+        let mut t = ts.into_framed();
 
-        let r = t.rx().await;
-
-        dbg!(&r);
+        let r = t.next().await;
 
         assert!(matches!(r, Some(Err(CodecError::JsonError(_)))));
 
