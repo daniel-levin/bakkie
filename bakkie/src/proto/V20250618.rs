@@ -3,7 +3,7 @@ use crate::{
     framing::{CodecError, Frame},
     tool::{Tool, Tools},
 };
-use bakkie_schema::Implementation;
+use bakkie_schema::V20250618::Implementation;
 
 #[derive(Debug, Default)]
 pub struct McpServerImpl {

@@ -3,7 +3,7 @@ use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 pub use bakkie_derive::{Argument, input, prompt, tool};
-use bakkie_schema::ElicitRequestParams;
+use bakkie_schema::V20250618::ElicitRequestParams;
 
 pub mod framing;
 pub mod proto;

@@ -4,9 +4,9 @@ use crate::{
     proto::NegotiatedAgreement,
     tool::{Tool, Tools},
 };
-use bakkie_schema::{
+use bakkie_schema::V20250618::{
     Implementation, InitializeRequestParams, InitializeResult, JsonrpcMessage, JsonrpcNotification,
-    JsonrpcRequest, JsonrpcRequestParams, ServerCapabilities, ServerCapabilitiesPrompts,
+    JsonrpcRequest, JsonrpcRequestParams, RequestId, ServerCapabilities, ServerCapabilitiesPrompts,
     ServerCapabilitiesResources, ServerCapabilitiesTools,
 };
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,6 @@ use crate::{
     proto,
     proto::{HandshakeError, Mcp},
 };
-use bakkie_schema::RequestId;
 
 #[derive(Debug, Error)]
 #[error("server shut down with error")]

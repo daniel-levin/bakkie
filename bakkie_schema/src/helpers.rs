@@ -1,4 +1,4 @@
-use crate::{JsonrpcMessage, JsonrpcResponse, RequestId};
+use crate::V20250618::{JsonrpcMessage, JsonrpcResponse, RequestId};
 use serde::Serialize;
 use thiserror::Error;
 
@@ -22,7 +22,7 @@ pub fn new_response<T: Serialize + ?Sized>(
     Ok(JsonrpcMessage::Response(JsonrpcResponse {
         id,
         jsonrpc: "2.0".into(),
-        result: crate::Result {
+        result: crate::V20250618::Result {
             meta: Default::default(),
             extra: body,
         },

@@ -1,4 +1,4 @@
-use bakkie_schema::{CallToolRequestParams, CallToolResult};
+use bakkie_schema::V20250618::{CallToolRequestParams, CallToolResult};
 use schemars::Schema;
 use serde::Serialize;
 use serde_json::{Map, Value};

@@ -1,5 +1,5 @@
 use bakkie::{App, McpServer, tool::Tool};
-use bakkie_schema::CallToolResult;
+use bakkie_schema::V20250618::CallToolResult;
 use std::{pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
 
