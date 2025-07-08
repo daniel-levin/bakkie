@@ -1,5 +1,4 @@
-use bakkie_schema::V20250618::{CallToolRequestParams, CallToolResult};
-use schemars::Schema;
+use bakkie_schema::V20250618::CallToolRequestParams;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::{collections::HashMap, pin::Pin};

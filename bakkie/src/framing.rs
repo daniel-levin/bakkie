@@ -1,6 +1,5 @@
-use bakkie_schema::V20250618::JsonrpcMessage;
 use futures::sink::SinkExt;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tokio_util::codec::{Decoder, Encoder};
 
 use bytes::{Buf, BytesMut};

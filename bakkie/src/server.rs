@@ -1,15 +1,8 @@
 use crate::{
     Stream,
-    framing::{CodecError, Frame, Msg, Request, StdioStream, Transport},
-    proto::NegotiatedAgreement,
-    tool::{Tool, Tools},
+    framing::{CodecError, Frame, StdioStream, Transport},
 };
-use bakkie_schema::V20250618::{
-    Implementation, InitializeRequestParams, InitializeResult, JsonrpcMessage, JsonrpcNotification,
-    JsonrpcRequest, JsonrpcRequestParams, RequestId, ServerCapabilities, ServerCapabilitiesPrompts,
-    ServerCapabilitiesResources, ServerCapabilitiesTools,
-};
-use serde::{Deserialize, Serialize};
+use bakkie_schema::V20250618::Implementation;
 use thiserror::Error;
 use tokio::task::{JoinError, JoinSet};
 use tokio_util::sync::CancellationToken;
@@ -62,7 +55,7 @@ impl<T: Stream, M: Mcp> McpServer<T, M> {
         Self {
             transport,
             ct,
-            mcp: mcp,
+            mcp,
             tasks: JoinSet::new(),
         }
     }

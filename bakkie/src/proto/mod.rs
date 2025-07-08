@@ -1,5 +1,4 @@
 use crate::framing::{CodecError, Frame};
-use bakkie_schema::V20250618::{InitializeRequestParams, InitializeResult};
 use std::str::FromStr;
 use strum::{Display, EnumString};
 use thiserror::Error;
