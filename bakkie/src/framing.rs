@@ -111,6 +111,15 @@ pub enum Frame {
     Single(Msg),
 }
 
+impl Frame {
+    pub fn into_messages(self) -> Vec<Msg> {
+        match self {
+            Self::Batch(b) => b,
+            Self::Single(m) => vec![m],
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum RequestId {

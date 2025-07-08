@@ -1,6 +1,6 @@
 use super::{HandshakeError, Mcp, NegotiatedAgreement, RxError};
 use crate::{
-    framing::{CodecError, Frame},
+    framing::{CodecError, Frame, Msg},
     tool::{Tool, Tools},
 };
 
@@ -28,7 +28,15 @@ impl Mcp for McpServerImpl {
         todo!();
     }
 
-    async fn on_rx(&mut self, frame: Option<Result<Frame, CodecError>>) -> Result<(), RxError> {
+    async fn rx_frame(&mut self, frame: Frame) -> Result<(), RxError> {
+        for msg in frame.into_messages() {
+            match msg {
+                Msg::Request(r) => {}
+                Msg::Notification(r) => {}
+                Msg::Response(r) => {}
+                Msg::Error(r) => {}
+            }
+        }
         Ok(())
     }
 }

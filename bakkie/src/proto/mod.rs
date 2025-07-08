@@ -8,7 +8,7 @@ pub mod V20250618;
 pub trait Mcp {
     async fn handshake(&mut self) -> Result<NegotiatedAgreement, HandshakeError>;
 
-    async fn on_rx(&mut self, frame: Option<Result<Frame, CodecError>>) -> Result<(), RxError>;
+    async fn rx_frame(&mut self, frame: Frame) -> Result<(), RxError>;
 }
 
 #[derive(Debug, Error)]

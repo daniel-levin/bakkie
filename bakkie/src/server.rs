@@ -5,7 +5,7 @@ use crate::{
 use bakkie_schema::V20250618::Implementation;
 use thiserror::Error;
 use tokio::task::{JoinError, JoinSet};
-use tokio_util::sync::CancellationToken;
+use tokio_util::sync::{CancellationToken, DropGuard};
 
 use crate::{
     proto,
@@ -32,6 +32,9 @@ enum ProtocolError {
 
     #[error(transparent)]
     Codec(#[from] CodecError),
+
+    #[error("error processing received message")]
+    RxError(#[from] crate::proto::RxError),
 }
 
 #[derive(Debug)]
@@ -46,16 +49,19 @@ pub struct McpServer<T: Stream, M: Mcp = proto::V20250618::McpServerImpl> {
     mcp: M,
 
     ct: CancellationToken,
+    dg: DropGuard,
     tasks: JoinSet<Result<Completion, CompletionError>>,
 }
 
 impl<T: Stream, M: Mcp> McpServer<T, M> {
     pub fn new(transport: Transport<T>, mcp: M) -> Self {
         let ct = CancellationToken::new();
+        let dg = ct.clone().drop_guard();
         Self {
             transport,
             ct,
             mcp,
+            dg,
             tasks: JoinSet::new(),
         }
     }
@@ -71,8 +77,8 @@ impl<T: Stream, M: Mcp> McpServer<T, M> {
             let rx = self.transport.rx();
             let task_finish = self.tasks.join_next();
             tokio::select! {
-                frame = rx => {
-                    self.mcp.on_rx(frame).await;
+                maybe_frame = rx => {
+                    self.on_rx(maybe_frame).await;
                 }
                 completion = task_finish => {
                     self.on_completion(completion).await;
@@ -156,15 +162,13 @@ impl<T: Stream, M: Mcp> McpServer<T, M> {
     ) -> Result<(), ProtocolError> {
         match frame {
             Some(Ok(frame)) => {
-                self.delegate_rx(frame).await;
+                self.mcp.rx_frame(frame).await?;
                 Ok(())
             }
             Some(Err(e)) => Err(ProtocolError::Codec(e)),
             None => Ok(()),
         }
     }
-
-    async fn delegate_rx(&mut self, f: Frame) {}
 
     async fn on_completion(
         &mut self,

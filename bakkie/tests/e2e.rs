@@ -2,7 +2,6 @@ use bakkie::{
     McpServer,
     framing::{Frame, Transport},
 };
-use bakkie_schema::JsonrpcMessage;
 
 /*
 macro_rules! load {
