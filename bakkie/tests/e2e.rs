@@ -1,6 +1,6 @@
 use bakkie::{
     framing::{Frame, Msg, Request, RequestId, Response, Transport},
-    proto::V20250618::{McpServer, McpServerError},
+    proto::V20250618::{InboxError, InitPhaseError, McpServer, McpServerError, OpPhaseError},
     tools::Tools,
 };
 use futures::{SinkExt, stream::StreamExt};
@@ -73,7 +73,11 @@ async fn initialize_flow() -> anyhow::Result<()> {
         .send(serde_json::from_str(INITIALIZED).unwrap())
         .await;
 
-    assert!(!jh.is_finished());
+    // Hang up on us.
+    drop(framed);
+
+    // We exit gracefully.
+    assert!(jh.await?.is_ok());
 
     Ok(())
 }
@@ -90,7 +94,7 @@ static BAD_INIT: &str = r#"
 async fn hangs_up_on_bad_init() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
 
-    tokio::task::spawn(async move {
+    let jh = tokio::task::spawn(async move {
         let server = McpServer::new(server);
 
         server.run().await
@@ -98,9 +102,12 @@ async fn hangs_up_on_bad_init() -> anyhow::Result<()> {
 
     client.write_all(BAD_INIT.as_bytes()).await?;
 
-    let mut framed = client.into_framed();
+    let e: McpServerError = jh.await?.unwrap_err();
 
-    assert!(framed.next().await.is_none());
+    assert!(matches!(
+        e,
+        McpServerError::InboxError(InboxError::InitPhase(_))
+    ));
 
     Ok(())
 }
@@ -130,7 +137,7 @@ static NON_INIT: &str = r#"
 async fn hangs_up_on_non_init() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
 
-    tokio::task::spawn(async move {
+    let jh = tokio::task::spawn(async move {
         let server = McpServer::new(server);
 
         server.run().await
@@ -138,9 +145,12 @@ async fn hangs_up_on_non_init() -> anyhow::Result<()> {
 
     client.write_all(NON_INIT.as_bytes()).await?;
 
-    let mut framed = client.into_framed();
+    let e: McpServerError = jh.await?.unwrap_err();
 
-    assert!(framed.next().await.is_none());
+    assert!(matches!(
+        e,
+        McpServerError::InboxError(InboxError::InitPhase(_))
+    ));
 
     Ok(())
 }
@@ -192,22 +202,18 @@ async fn allows_pings_before_inited() -> anyhow::Result<()> {
 
     drop(framed);
 
-    let _ = jh.await?;
+    let should_be_graceful = jh.await?;
+
+    assert!(matches!(should_be_graceful, Ok(())));
 
     Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn disallows_non_pings_before_inited() -> anyhow::Result<()> {
-    /*
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .init();
-    */
-
     let (mut client, server) = tokio::io::duplex(64);
 
-    tokio::task::spawn(async move {
+    let jh = tokio::task::spawn(async move {
         let server = McpServer::new(server);
 
         server.run().await
@@ -231,8 +237,17 @@ async fn disallows_non_pings_before_inited() -> anyhow::Result<()> {
 
     let pong_rcv = framed.next().await.unwrap();
 
-    // they hung up on us
+    // they see that we hung up on them
     assert!(pong_rcv.is_err());
+
+    // make sure we actually did hang up on them
+
+    let e: McpServerError = jh.await?.unwrap_err();
+
+    assert!(matches!(
+        e,
+        McpServerError::InboxError(InboxError::InitPhase(_))
+    ));
 
     Ok(())
 }
@@ -278,8 +293,6 @@ async fn request_tools() -> anyhow::Result<()> {
         .await;
 
     let tools = framed.next().await;
-
-    dbg!(tools);
 
     Ok(())
 }

@@ -13,7 +13,7 @@ use tokio::{
     sync::mpsc,
     task::{JoinError, JoinHandle},
 };
-use tokio_util::{codec::Framed, sync::CancellationToken};
+use tokio_util::codec::Framed;
 
 #[derive(Debug, Error)]
 pub enum McpServerError {
@@ -287,16 +287,15 @@ async fn handle_message(msg: Msg, tools: Arc<Tools>, tx: mpsc::UnboundedSender<F
     match msg {
         Msg::Request(Request {
             id, method, params, ..
-        }) => match method.as_str() {
-            "tools/list" => {
+        }) => {
+            if method.as_str() == "tools/list" {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
                     jsonrpc: monostate::MustBe!("2.0"),
                     id,
                     result: serde_json::to_value(tools.as_wire()).unwrap(),
                 })));
             }
-            _ => {}
-        },
+        }
         Msg::Error(_) => {}
         Msg::Notification(_) => {}
         Msg::Response(_) => {}
