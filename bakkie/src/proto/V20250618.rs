@@ -187,17 +187,11 @@ impl<T: Transport> InitPhase<T> {
             match could_be_init {
                 Msg::Request(Request { id, method, .. }) => {
                     if method == "ping" {
-                        let mut pong: Response = serde_json::from_str(
-                            r#"
-                        {
-                          "jsonrpc": "2.0",
-                          "id": "123",
-                          "result": {}
-                        }"#,
-                        )
-                        .unwrap();
-
-                        pong.id = id;
+                        let pong = Response {
+                            jsonrpc: monostate::MustBe!("2.0"),
+                            id,
+                            result: serde_json::Map::new().into(),
+                        };
 
                         let _ = self.tx.send(Frame::Single(Msg::Response(pong)));
                     } else {
@@ -236,17 +230,14 @@ struct OpPhase<T: Transport> {
 impl<T: Transport> OpPhase<T> {
     async fn run_until_client_disconnects(mut self) -> Result<(), OpPhaseError> {
         while let Some(maybe_frame) = self.stream.next().await {
-            match maybe_frame {
-                Ok(frame) => {
-                    for msg in frame.into_messages() {
-                        tokio::task::spawn(Box::pin(handle_message(
-                            msg,
-                            self.provisions.clone(),
-                            self.tx.clone(),
-                        )));
-                    }
+            if let Ok(frame) = maybe_frame {
+                for msg in frame.into_messages() {
+                    tokio::task::spawn(Box::pin(handle_message(
+                        msg,
+                        self.provisions.clone(),
+                        self.tx.clone(),
+                    )));
                 }
-                Err(_) => {}
             }
         }
 
