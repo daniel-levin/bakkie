@@ -44,7 +44,7 @@ impl Decoder for McpFraming {
                 Ok(Some(msg))
             }
             Some(Err(e)) => {
-                if !e.is_eof() {
+                if !e.is_eof() && !e.is_io() {
                     Err(e)?
                 } else {
                     Ok(None)
