@@ -249,7 +249,6 @@ impl<T: Transport> OpPhase<T> {
         while let Some(maybe_frame) = self.stream.next().await {
             match maybe_frame {
                 Ok(frame) => {
-                    tracing::trace!("rx {frame:#?}");
                     for msg in frame.into_messages() {
                         tokio::task::spawn(Box::pin(handle_message(
                             msg,
