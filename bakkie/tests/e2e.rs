@@ -292,7 +292,7 @@ async fn request_tools() -> anyhow::Result<()> {
         .send(Frame::Single(Msg::Request(ask_for_tools)))
         .await;
 
-    let tools = framed.next().await;
+    let _tools = framed.next().await;
 
     Ok(())
 }

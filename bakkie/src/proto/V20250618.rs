@@ -17,9 +17,6 @@ use tokio_util::codec::Framed;
 
 #[derive(Debug, Error)]
 pub enum McpServerError {
-    #[error("cancelled")]
-    Cancelled,
-
     #[error(transparent)]
     JoinError(#[from] JoinError),
 
@@ -30,14 +27,9 @@ pub enum McpServerError {
     OutboxError(#[from] OutboxError),
 }
 
-impl McpServerError {
-    pub fn is_cancellation(&self) -> bool {
-        true
-    }
-}
-
 #[derive(Debug)]
 pub struct McpServer {
+    #[allow(dead_code)]
     tools: Arc<Tools>,
 
     inbox_task: JoinHandle<Result<(), InboxError>>,
@@ -182,7 +174,7 @@ impl<T: Transport> InitPhase<T> {
             return Err(InitPhaseError::NonInitReceived(method));
         }
 
-        let Ok(init_msg) =
+        let Ok(_init_msg) =
             serde_json::from_value::<bakkie_schema::V20250618::InitializeRequestParams>(params)
         else {
             return Err(InitPhaseError::NonConformantInitMessage);
@@ -257,7 +249,7 @@ impl<T: Transport> OpPhase<T> {
                         )));
                     }
                 }
-                Err(e) => {}
+                Err(_) => {}
             }
         }
 
@@ -287,7 +279,7 @@ impl<T: Transport> Outbox<T> {
 async fn handle_message(msg: Msg, tools: Arc<Tools>, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
         Msg::Request(Request {
-            id, method, params, ..
+            id, method, ..
         }) => {
             if method.as_str() == "tools/list" {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
