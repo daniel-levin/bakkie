@@ -1,5 +1,6 @@
 use crate::{
     framing::{Frame, McpFraming, Msg, Notification, Request, Response, Transport},
+    proto::CodecError,
     tools::Tools,
 };
 use futures::{
@@ -8,9 +9,11 @@ use futures::{
 };
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::{
+    sync::mpsc,
+    task::{JoinError, JoinHandle},
+};
 use tokio_util::{codec::Framed, sync::CancellationToken};
-use tokio::task::JoinError;
 
 #[derive(Debug, Error)]
 pub enum McpServerError {
@@ -73,9 +76,8 @@ impl McpServer {
             Ok(())
         }));
 
-        let outbox_task = tokio::task::spawn(Box::pin(async move {
-            outbox.run_to_completion().await
-        }));
+        let outbox_task =
+            tokio::task::spawn(Box::pin(async move { outbox.run_to_completion().await }));
 
         Self {
             tools,
@@ -136,7 +138,22 @@ pub enum InboxError {
 }
 
 #[derive(Debug, Error)]
-pub enum InitPhaseError {}
+pub enum InitPhaseError {
+    #[error("premature stream closure")]
+    PrematureStreamClosure,
+
+    #[error("cannot decode frame")]
+    CannotDecodeFrame(#[from] CodecError),
+
+    #[error("init phase requires single json-rpc request but received something else")]
+    SingleRpcExpected,
+
+    #[error("non-init message with method {0} received")]
+    NonInitReceived(String),
+
+    #[error("non-conformant init message")]
+    NonConformantInitMessage,
+}
 
 #[derive(Debug)]
 struct InitPhase<T: Transport> {
@@ -147,6 +164,64 @@ struct InitPhase<T: Transport> {
 
 impl<T: Transport> InitPhase<T> {
     async fn negotiate(mut self) -> Result<OpPhase<T>, InitPhaseError> {
+        let Some(rcv) = self.stream.next().await else {
+            return Err(InitPhaseError::PrematureStreamClosure);
+        };
+
+        let Frame::Single(Msg::Request(Request {
+            method, params, id, ..
+        })) = rcv?
+        else {
+            return Err(InitPhaseError::SingleRpcExpected);
+        };
+
+        if method != "initialize" {
+            return Err(InitPhaseError::NonInitReceived(method));
+        }
+
+        let Ok(init_msg) =
+            serde_json::from_value::<bakkie_schema::V20250618::InitializeRequestParams>(params)
+        else {
+            return Err(InitPhaseError::NonConformantInitMessage);
+        };
+
+        let mut resp: Response = serde_json::from_str(CANNED_HANDSHAKE).unwrap();
+
+        resp.id = id;
+
+        let _ = self.tx.send(Frame::Single(Msg::Response(resp)));
+
+        while let Some(Ok(Frame::Single(could_be_init))) = self.stream.next().await {
+            match could_be_init {
+                Msg::Request(Request { id, method, .. }) => {
+                    if method == "ping" {
+                        tracing::debug!("got initialization phase ping. responding");
+                        let mut pong: Response = serde_json::from_str(
+                            r#"
+                        {
+                          "jsonrpc": "2.0",
+                          "id": "123",
+                          "result": {}
+                        }"#,
+                        )
+                        .unwrap();
+
+                        pong.id = id;
+
+                        let _ = self.tx.send(Frame::Single(Msg::Response(pong)));
+                    } else {
+                    }
+                }
+                Msg::Notification(Notification { method, .. }) => {
+                    if method == "notifications/initialized" {
+                        tracing::debug!("client sent init notification");
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+
         Ok(OpPhase {
             tx: self.tx,
             stream: self.stream,
@@ -289,8 +364,7 @@ async fn rx_loop<T: Transport>(
 */
 
 #[derive(Debug, Error)]
-pub enum OutboxError {
-}
+pub enum OutboxError {}
 
 #[derive(Debug)]
 struct Outbox<T: Transport> {
@@ -300,7 +374,6 @@ struct Outbox<T: Transport> {
 
 impl<T: Transport> Outbox<T> {
     async fn run_to_completion(mut self) -> Result<(), OutboxError> {
-
         while let Some(msg) = self.queue.recv().await {
             let _ = self.sink.send(msg).await;
         }
