@@ -153,6 +153,9 @@ pub enum InitPhaseError {
 
     #[error("non-conformant init message")]
     NonConformantInitMessage,
+
+    #[error("received non-ping {0}")]
+    ReceivedNonPing(String),
 }
 
 #[derive(Debug)]
@@ -209,6 +212,7 @@ impl<T: Transport> InitPhase<T> {
 
                         let _ = self.tx.send(Frame::Single(Msg::Response(pong)));
                     } else {
+                        return Err(InitPhaseError::ReceivedNonPing(method));
                     }
                 }
                 Msg::Notification(Notification { method, .. }) => {
@@ -259,123 +263,6 @@ impl<T: Transport> OpPhase<T> {
         Ok(())
     }
 }
-
-/*
-async fn rx_loop<T: Transport>(
-    ct: CancellationToken,
-    tx: mpsc::UnboundedSender<Frame>,
-    mut stream: SplitStream<Framed<T, McpFraming>>,
-    tools: Arc<Tools>,
-) -> Result<(), RxLoopError> {
-    tracing::debug!("awaiting initialize message");
-
-    let Some(rcv) = stream.next().await else {
-        return Err(RxLoopError::StreamClosed);
-    };
-
-    let Ok(frame) = rcv else {
-    };
-
-    let Ok(Frame::Single(Msg::Request(Request {
-        method, params, id, ..
-    }))) = rcv
-    else {
-        tracing::error!("did not receive expected initialize message");
-        ct.cancel();
-    };
-
-    if method != "initialize" {
-        tracing::error!("unexpected method call {method}");
-        ct.cancel();
-    }
-
-    let Ok(init_msg) =
-        serde_json::from_value::<bakkie_schema::V20250618::InitializeRequestParams>(params)
-    else {
-        tracing::error!("could not understand initialize message");
-        ct.cancel();
-    };
-
-    tracing::debug!(
-        "client {}@{} requests protocol version {}",
-        init_msg.client_info.name,
-        init_msg.client_info.version,
-        init_msg.protocol_version
-    );
-
-    let mut resp: Response = serde_json::from_str(CANNED_HANDSHAKE).unwrap();
-
-    resp.id = id;
-
-    let _ = tx.send(Frame::Single(Msg::Response(resp)));
-
-    tracing::debug!("responded with server hello");
-
-    while let Some(Ok(Frame::Single(could_be_init))) = stream.next().await {
-        match could_be_init {
-            Msg::Request(Request { id, method, .. }) => {
-                if method == "ping" {
-                    tracing::debug!("got initialization phase ping. responding");
-                    let mut pong: Response = serde_json::from_str(
-                        r#"
-                        {
-                          "jsonrpc": "2.0",
-                          "id": "123",
-                          "result": {}
-                        }"#,
-                    )
-                    .unwrap();
-
-                    pong.id = id;
-
-                    let _ = tx.send(Frame::Single(Msg::Response(pong)));
-                } else {
-                    tracing::error!("got request in initialization phase that is not ping");
-                    ct.cancel();
-                }
-            }
-            Msg::Notification(Notification { method, .. }) => {
-                if method == "notifications/initialized" {
-                    tracing::debug!("client sent init notification");
-                    break;
-                }
-            }
-            _ => {
-                tracing::error!("got non-ping, also not an initialized notification");
-                ct.cancel();
-            }
-        }
-    }
-
-    tracing::info!("handshake complete");
-
-    while let Some(maybe_frame) = stream.next().await {
-        match maybe_frame {
-            Ok(frame) => {
-                tracing::trace!("rx {frame:#?}");
-                for msg in frame.into_messages() {
-                    tokio::task::spawn(ct.clone().run_until_cancelled_owned(handle_message(
-                        msg,
-                        tools.clone(),
-                        tx.clone(),
-                    )));
-                }
-            }
-            Err(e) => {
-                tracing::error!("error in wire protocol {e:#?}");
-                ct.cancel();
-            }
-        }
-    }
-
-    if !ct.is_cancelled() {
-        tracing::debug!("rx loop ended without errors");
-        ct.cancel();
-    }
-
-    Ok(())
-}
-*/
 
 #[derive(Debug, Error)]
 pub enum OutboxError {}

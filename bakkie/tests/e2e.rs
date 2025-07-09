@@ -1,6 +1,6 @@
 use bakkie::{
     framing::{Frame, Msg, Request, RequestId, Response, Transport},
-    proto::V20250618::McpServer,
+    proto::V20250618::{McpServer, McpServerError},
     tools::Tools,
 };
 use futures::{SinkExt, stream::StreamExt};
@@ -18,9 +18,9 @@ async fn cancels_if_corrupt_on_wire() -> anyhow::Result<()> {
 
     client.write_all(b"non json").await?;
 
-    let e = anticipating_error.await?.unwrap_err();
+    let e: McpServerError = anticipating_error.await?.unwrap_err();
 
-    assert!(e.is_cancellation());
+    assert!(matches!(e, McpServerError::InboxError(_)));
 
     Ok(())
 }
