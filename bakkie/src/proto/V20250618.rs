@@ -154,8 +154,8 @@ pub enum InitPhaseError {
     #[error("non-conformant init message")]
     NonConformantInitMessage,
 
-    #[error("received non-ping {0}")]
-    ReceivedNonPing(String),
+    #[error("received non-ping while awaiting init notification")]
+    ReceivedNonPing,
 }
 
 #[derive(Debug)]
@@ -212,7 +212,7 @@ impl<T: Transport> InitPhase<T> {
 
                         let _ = self.tx.send(Frame::Single(Msg::Response(pong)));
                     } else {
-                        return Err(InitPhaseError::ReceivedNonPing(method));
+                        return Err(InitPhaseError::ReceivedNonPing);
                     }
                 }
                 Msg::Notification(Notification { method, .. }) => {
@@ -220,7 +220,9 @@ impl<T: Transport> InitPhase<T> {
                         break;
                     }
                 }
-                _ => {}
+                _ => {
+                    return Err(InitPhaseError::ReceivedNonPing);
+                }
             }
         }
 

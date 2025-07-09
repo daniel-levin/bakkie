@@ -1,6 +1,6 @@
 use bakkie::{
     framing::{Frame, Msg, Request, RequestId, Response, Transport},
-    proto::V20250618::{InboxError, InitPhaseError, McpServer, McpServerError, OpPhaseError},
+    proto::V20250618::{InboxError, McpServer, McpServerError},
     tools::Tools,
 };
 use futures::{SinkExt, stream::StreamExt};
@@ -257,7 +257,7 @@ async fn request_tools() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
 
     tokio::task::spawn(async move {
-        let mut tools = Tools::default();
+        let tools = Tools::default();
 
         let server = McpServer::new_with_tools(server, tools);
 
