@@ -1,7 +1,7 @@
 use bakkie::{
     framing::{Frame, Msg, Request, RequestId, Response, Transport},
     proto::V20250618::{InboxError, McpServer, McpServerError},
-    tools::Tools,
+    provisions::Provisions,
 };
 use futures::{SinkExt, stream::StreamExt};
 use tokio::io::AsyncWriteExt;
@@ -31,7 +31,7 @@ static INIT: &str = r#"
   "id": 1,
   "method": "initialize",
   "params": {
-    "protocolVersion": "2025-03-26",
+    "protocolVersion": "2025-06-18",
     "capabilities": {
       "roots": {
         "listChanged": true
@@ -257,9 +257,9 @@ async fn request_tools() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
 
     tokio::task::spawn(async move {
-        let tools = Tools::default();
+        let provisions = Provisions::default();
 
-        let server = McpServer::new_with_tools(server, tools);
+        let server = McpServer::new_with_provisions(server, provisions);
 
         server.run().await
     });
@@ -293,6 +293,56 @@ async fn request_tools() -> anyhow::Result<()> {
         .await;
 
     let _tools = framed.next().await;
+
+    Ok(())
+}
+
+static OLDER_INIT: &str = r#"
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-03-26",
+    "capabilities": {
+      "roots": {
+        "listChanged": true
+      },
+      "sampling": {}
+    },
+    "clientInfo": {
+      "name": "ExampleClient",
+      "version": "1.0.0"
+    }
+  }
+}
+"#;
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn it_is_an_older_code_sir_but_it_checks_out() -> anyhow::Result<()> {
+    let (mut client, server) = tokio::io::duplex(64);
+
+    let jh = tokio::task::spawn(async move {
+        let server = McpServer::new(server);
+
+        server.run().await
+    });
+
+    client.write_all(OLDER_INIT.as_bytes()).await?;
+
+    let mut framed = client.into_framed();
+
+    let _ = framed.next().await.unwrap().unwrap();
+
+    let _ = framed
+        .send(serde_json::from_str(INITIALIZED).unwrap())
+        .await;
+
+    // Hang up on us.
+    drop(framed);
+
+    // We exit gracefully.
+    assert!(jh.await?.is_ok());
 
     Ok(())
 }

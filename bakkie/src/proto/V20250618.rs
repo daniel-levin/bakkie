@@ -1,13 +1,12 @@
 use crate::{
     framing::{Frame, McpFraming, Msg, Notification, Request, Response, Transport},
     proto::CodecError,
-    tools::Tools,
+    provisions::Provisions,
 };
 use futures::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
 };
-use std::sync::Arc;
 use thiserror::Error;
 use tokio::{
     sync::mpsc,
@@ -30,20 +29,18 @@ pub enum McpServerError {
 #[derive(Debug)]
 pub struct McpServer {
     #[allow(dead_code)]
-    tools: Arc<Tools>,
-
+    provisions: Provisions,
     inbox_task: JoinHandle<Result<(), InboxError>>,
     outbox_task: JoinHandle<Result<(), OutboxError>>,
 }
 
 impl McpServer {
     pub fn new<T: Transport>(t: T) -> Self {
-        Self::new_with_tools(t, Tools::default())
+        Self::new_with_provisions(t, Provisions::default())
     }
 
-    pub fn new_with_tools<T: Transport>(t: T, tools: Tools) -> Self {
+    pub fn new_with_provisions<T: Transport>(t: T, provisions: Provisions) -> Self {
         let framing = t.into_framed();
-        let tools = Arc::new(tools);
 
         let (write, read) = framing.split();
 
@@ -52,7 +49,7 @@ impl McpServer {
         let init_phase = InitPhase {
             tx,
             stream: read,
-            tools: tools.clone(),
+            provisions: provisions.clone(),
         };
 
         let outbox = Outbox {
@@ -72,7 +69,7 @@ impl McpServer {
             tokio::task::spawn(Box::pin(async move { outbox.run_to_completion().await }));
 
         Self {
-            tools,
+            provisions,
             inbox_task,
             outbox_task,
         }
@@ -154,7 +151,7 @@ pub enum InitPhaseError {
 struct InitPhase<T: Transport> {
     tx: mpsc::UnboundedSender<Frame>,
     stream: SplitStream<Framed<T, McpFraming>>,
-    tools: Arc<Tools>,
+    provisions: Provisions,
 }
 
 impl<T: Transport> InitPhase<T> {
@@ -221,7 +218,7 @@ impl<T: Transport> InitPhase<T> {
         Ok(OpPhase {
             tx: self.tx,
             stream: self.stream,
-            tools: self.tools,
+            provisions: self.provisions,
         })
     }
 }
@@ -233,7 +230,7 @@ pub enum OpPhaseError {}
 struct OpPhase<T: Transport> {
     tx: mpsc::UnboundedSender<Frame>,
     stream: SplitStream<Framed<T, McpFraming>>,
-    tools: Arc<Tools>,
+    provisions: Provisions,
 }
 
 impl<T: Transport> OpPhase<T> {
@@ -244,7 +241,7 @@ impl<T: Transport> OpPhase<T> {
                     for msg in frame.into_messages() {
                         tokio::task::spawn(Box::pin(handle_message(
                             msg,
-                            self.tools.clone(),
+                            self.provisions.clone(),
                             self.tx.clone(),
                         )));
                     }
@@ -276,16 +273,14 @@ impl<T: Transport> Outbox<T> {
     }
 }
 
-async fn handle_message(msg: Msg, tools: Arc<Tools>, tx: mpsc::UnboundedSender<Frame>) {
+async fn handle_message(msg: Msg, _provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
-        Msg::Request(Request {
-            id, method, ..
-        }) => {
+        Msg::Request(Request { id, method, .. }) => {
             if method.as_str() == "tools/list" {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
                     jsonrpc: monostate::MustBe!("2.0"),
                     id,
-                    result: serde_json::to_value(tools.as_wire()).unwrap(),
+                    result: serde_json::to_value("").unwrap(),
                 })));
             }
         }
