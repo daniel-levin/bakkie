@@ -195,7 +195,6 @@ impl<T: Transport> InitPhase<T> {
             match could_be_init {
                 Msg::Request(Request { id, method, .. }) => {
                     if method == "ping" {
-                        tracing::debug!("got initialization phase ping. responding");
                         let mut pong: Response = serde_json::from_str(
                             r#"
                         {
@@ -214,7 +213,6 @@ impl<T: Transport> InitPhase<T> {
                 }
                 Msg::Notification(Notification { method, .. }) => {
                     if method == "notifications/initialized" {
-                        tracing::debug!("client sent init notification");
                         break;
                     }
                 }
@@ -242,6 +240,22 @@ struct OpPhase<T: Transport> {
 
 impl<T: Transport> OpPhase<T> {
     async fn run_until_client_disconnects(mut self) -> Result<(), OpPhaseError> {
+        while let Some(maybe_frame) = self.stream.next().await {
+            match maybe_frame {
+                Ok(frame) => {
+                    tracing::trace!("rx {frame:#?}");
+                    for msg in frame.into_messages() {
+                        tokio::task::spawn(Box::pin(handle_message(
+                            msg,
+                            self.tools.clone(),
+                            self.tx.clone(),
+                        )));
+                    }
+                }
+                Err(e) => {}
+            }
+        }
+
         Ok(())
     }
 }
