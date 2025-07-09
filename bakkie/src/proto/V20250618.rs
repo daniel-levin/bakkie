@@ -8,13 +8,23 @@ use futures::{
 };
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::{codec::Framed, sync::CancellationToken};
+use tokio::task::JoinError;
 
 #[derive(Debug, Error)]
 pub enum McpServerError {
     #[error("cancelled")]
     Cancelled,
+
+    #[error(transparent)]
+    JoinError(#[from] JoinError),
+
+    #[error("error processing incoming messages")]
+    InboxError(#[from] InboxError),
+
+    #[error("error sending outgoing messages")]
+    OutboxError(#[from] OutboxError),
 }
 
 impl McpServerError {
@@ -25,9 +35,10 @@ impl McpServerError {
 
 #[derive(Debug)]
 pub struct McpServer {
-    ct: CancellationToken,
-
     tools: Arc<Tools>,
+
+    inbox_task: JoinHandle<Result<(), InboxError>>,
+    outbox_task: JoinHandle<Result<(), OutboxError>>,
 }
 
 impl McpServer {
@@ -37,31 +48,53 @@ impl McpServer {
 
     pub fn new_with_tools<T: Transport>(t: T, tools: Tools) -> Self {
         let framing = t.into_framed();
-        let ct = CancellationToken::new();
         let tools = Arc::new(tools);
 
         let (write, read) = framing.split();
 
         let (tx, rx) = mpsc::unbounded_channel();
 
-        tokio::task::spawn(ct.clone().run_until_cancelled_owned(rx_loop(
-            ct.clone(),
+        let init_phase = InitPhase {
             tx,
-            read,
-            tools.clone(),
-        )));
-        tokio::task::spawn(
-            ct.clone()
-                .run_until_cancelled_owned(tx_loop(ct.clone(), rx, write)),
-        );
+            stream: read,
+            tools: tools.clone(),
+        };
 
-        Self { ct, tools }
+        let outbox = Outbox {
+            queue: rx,
+            sink: write,
+        };
+
+        let inbox_task = tokio::task::spawn(Box::pin(async move {
+            let op_phase = init_phase.negotiate().await?;
+
+            op_phase.run_until_client_disconnects().await?;
+
+            Ok(())
+        }));
+
+        let outbox_task = tokio::task::spawn(Box::pin(async move {
+            outbox.run_to_completion().await
+        }));
+
+        Self {
+            tools,
+            inbox_task,
+            outbox_task,
+        }
     }
 
     pub async fn run(self) -> Result<(), McpServerError> {
-        self.ct.cancelled().await;
-
-        Err(McpServerError::Cancelled)
+        tokio::select! {
+            maybe_faulted_in_inbox = self.inbox_task => {
+                maybe_faulted_in_inbox??;
+                Ok(())
+            },
+            maybe_faulted_in_outbox = self.outbox_task => {
+                maybe_faulted_in_outbox??;
+                Ok(())
+            }
+        }
     }
 }
 
@@ -93,27 +126,78 @@ static CANNED_HANDSHAKE: &str = r#"
 }
 "#;
 
+#[derive(Debug, Error)]
+pub enum InboxError {
+    #[error("initialization phase error")]
+    InitPhase(#[from] InitPhaseError),
+
+    #[error("operation phase error")]
+    OpPhase(#[from] OpPhaseError),
+}
+
+#[derive(Debug, Error)]
+pub enum InitPhaseError {}
+
+#[derive(Debug)]
+struct InitPhase<T: Transport> {
+    tx: mpsc::UnboundedSender<Frame>,
+    stream: SplitStream<Framed<T, McpFraming>>,
+    tools: Arc<Tools>,
+}
+
+impl<T: Transport> InitPhase<T> {
+    async fn negotiate(mut self) -> Result<OpPhase<T>, InitPhaseError> {
+        Ok(OpPhase {
+            tx: self.tx,
+            stream: self.stream,
+            tools: self.tools,
+        })
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum OpPhaseError {}
+
+#[derive(Debug)]
+struct OpPhase<T: Transport> {
+    tx: mpsc::UnboundedSender<Frame>,
+    stream: SplitStream<Framed<T, McpFraming>>,
+    tools: Arc<Tools>,
+}
+
+impl<T: Transport> OpPhase<T> {
+    async fn run_until_client_disconnects(mut self) -> Result<(), OpPhaseError> {
+        Ok(())
+    }
+}
+
+/*
 async fn rx_loop<T: Transport>(
     ct: CancellationToken,
     tx: mpsc::UnboundedSender<Frame>,
     mut stream: SplitStream<Framed<T, McpFraming>>,
     tools: Arc<Tools>,
-) {
+) -> Result<(), RxLoopError> {
     tracing::debug!("awaiting initialize message");
 
-    let Some(Ok(Frame::Single(Msg::Request(Request {
+    let Some(rcv) = stream.next().await else {
+        return Err(RxLoopError::StreamClosed);
+    };
+
+    let Ok(frame) = rcv else {
+    };
+
+    let Ok(Frame::Single(Msg::Request(Request {
         method, params, id, ..
-    })))) = stream.next().await
+    }))) = rcv
     else {
         tracing::error!("did not receive expected initialize message");
         ct.cancel();
-        return;
     };
 
     if method != "initialize" {
         tracing::error!("unexpected method call {method}");
         ct.cancel();
-        return;
     }
 
     let Ok(init_msg) =
@@ -121,7 +205,6 @@ async fn rx_loop<T: Transport>(
     else {
         tracing::error!("could not understand initialize message");
         ct.cancel();
-        return;
     };
 
     tracing::debug!(
@@ -160,7 +243,6 @@ async fn rx_loop<T: Transport>(
                 } else {
                     tracing::error!("got request in initialization phase that is not ping");
                     ct.cancel();
-                    return;
                 }
             }
             Msg::Notification(Notification { method, .. }) => {
@@ -172,7 +254,6 @@ async fn rx_loop<T: Transport>(
             _ => {
                 tracing::error!("got non-ping, also not an initialized notification");
                 ct.cancel();
-                return;
             }
         }
     }
@@ -194,7 +275,6 @@ async fn rx_loop<T: Transport>(
             Err(e) => {
                 tracing::error!("error in wire protocol {e:#?}");
                 ct.cancel();
-                return;
             }
         }
     }
@@ -203,16 +283,29 @@ async fn rx_loop<T: Transport>(
         tracing::debug!("rx loop ended without errors");
         ct.cancel();
     }
+
+    Ok(())
+}
+*/
+
+#[derive(Debug, Error)]
+pub enum OutboxError {
 }
 
-async fn tx_loop<T: Transport>(
-    _ct: CancellationToken,
-    mut outbox: mpsc::UnboundedReceiver<Frame>,
-    mut sink: SplitSink<Framed<T, McpFraming>, Frame>,
-) {
-    while let Some(msg) = outbox.recv().await {
-        tracing::trace!("sending {msg:#?}");
-        let _ = sink.send(msg).await;
+#[derive(Debug)]
+struct Outbox<T: Transport> {
+    queue: mpsc::UnboundedReceiver<Frame>,
+    sink: SplitSink<Framed<T, McpFraming>, Frame>,
+}
+
+impl<T: Transport> Outbox<T> {
+    async fn run_to_completion(mut self) -> Result<(), OutboxError> {
+
+        while let Some(msg) = self.queue.recv().await {
+            let _ = self.sink.send(msg).await;
+        }
+
+        Ok(())
     }
 }
 
