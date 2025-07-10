@@ -3,19 +3,25 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct ToolParticulars {
-    name: String,
-    title: Option<String>,
-    description: Option<String>,
-    input_schema: Schema,
-    output_schema: Option<Schema>,
+    pub name: String,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub input_schema: Schema,
+    pub output_schema: Option<Schema>,
 }
 
 #[derive(Debug)]
 pub struct Tool {
-    particulars: ToolParticulars,
+    pub particulars: ToolParticulars,
 }
 
 #[derive(Debug, Default)]
 pub struct Tools {
     tools: HashMap<String, Tool>,
+}
+
+impl Tools {
+    pub fn insert_tool(&mut self, name: &str, tool: Tool) {
+        self.tools.insert(name.to_owned(), tool);
+    }
 }
