@@ -21,12 +21,12 @@ pub struct Tools {
     tools: HashMap<String, Tool>,
 }
 
-impl Tool {
+impl ToolParticulars {
     pub fn to_schema_tool(&self) -> Result<SchemaTool, serde_json::Error> {
         let input_schema: ToolInputSchema =
-            serde_json::from_value(serde_json::to_value(&self.particulars.input_schema)?)?;
+            serde_json::from_value(serde_json::to_value(&self.input_schema)?)?;
 
-        let output_schema = if let Some(ref output_schema) = self.particulars.output_schema {
+        let output_schema = if let Some(ref output_schema) = self.output_schema {
             Some(serde_json::from_value(serde_json::to_value(
                 output_schema,
             )?)?)
@@ -36,12 +36,12 @@ impl Tool {
 
         Ok(SchemaTool {
             annotations: None,
-            description: self.particulars.description.clone(),
+            description: self.description.clone(),
             input_schema,
             meta: Default::default(),
-            name: self.particulars.name.clone(),
+            name: self.name.clone(),
             output_schema,
-            title: self.particulars.title.clone(),
+            title: self.title.clone(),
         })
     }
 }
@@ -81,11 +81,7 @@ mod tests {
             input_schema: input_schema.into(),
             output_schema: None,
         };
-        let tool = Tool {
-            particulars: tool_particulars,
-        };
-
-        let schema_tool = tool.to_schema_tool().unwrap();
+        let schema_tool = tool_particulars.to_schema_tool().unwrap();
 
         assert_eq!(schema_tool.name, "test_tool");
         assert_eq!(schema_tool.title, Some("Test Tool".to_string()));
@@ -106,11 +102,7 @@ mod tests {
             input_schema: input_schema.into(),
             output_schema: Some(output_schema.into()),
         };
-        let tool = Tool {
-            particulars: tool_particulars,
-        };
-
-        let schema_tool = tool.to_schema_tool().unwrap();
+        let schema_tool = tool_particulars.to_schema_tool().unwrap();
 
         assert_eq!(schema_tool.name, "test_tool_with_output");
         assert!(schema_tool.title.is_none());
@@ -137,11 +129,7 @@ mod tests {
             input_schema,
             output_schema: None,
         };
-        let tool = Tool {
-            particulars: tool_particulars,
-        };
-
-        let schema_tool = tool.to_schema_tool().unwrap();
+        let schema_tool = tool_particulars.to_schema_tool().unwrap();
 
         assert_eq!(schema_tool.name, "minimal_tool");
         assert!(schema_tool.title.is_none());
