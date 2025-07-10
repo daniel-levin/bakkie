@@ -1,8 +1,12 @@
-use crate::framing::{Frame, McpFraming, Msg, Notification, Request, Response, Transport};
+use crate::{
+    framing::{Frame, McpFraming, Msg, Notification, Request, Response, Transport},
+    tools::Tools,
+};
 use futures::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
 };
+use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tokio_util::{codec::Framed, sync::CancellationToken};
@@ -22,27 +26,36 @@ impl McpServerError {
 #[derive(Debug)]
 pub struct McpServer {
     ct: CancellationToken,
+
+    tools: Arc<Tools>,
 }
 
 impl McpServer {
     pub fn new<T: Transport>(t: T) -> Self {
+        Self::new_with_tools(t, Tools::default())
+    }
+
+    pub fn new_with_tools<T: Transport>(t: T, tools: Tools) -> Self {
         let framing = t.into_framed();
         let ct = CancellationToken::new();
+        let tools = Arc::new(tools);
 
         let (write, read) = framing.split();
 
         let (tx, rx) = mpsc::unbounded_channel();
 
-        tokio::task::spawn(
-            ct.clone()
-                .run_until_cancelled_owned(rx_loop(ct.clone(), tx, read)),
-        );
+        tokio::task::spawn(ct.clone().run_until_cancelled_owned(rx_loop(
+            ct.clone(),
+            tx,
+            read,
+            tools.clone(),
+        )));
         tokio::task::spawn(
             ct.clone()
                 .run_until_cancelled_owned(tx_loop(ct.clone(), rx, write)),
         );
 
-        Self { ct }
+        Self { ct, tools }
     }
 
     pub async fn run(self) -> Result<(), McpServerError> {
@@ -61,14 +74,14 @@ static CANNED_HANDSHAKE: &str = r#"
     "capabilities": {
       "logging": {},
       "prompts": {
-        "listChanged": true
+        "listChanged": false
       },
       "resources": {
-        "subscribe": true,
-        "listChanged": true
+        "subscribe": false,
+        "listChanged": false
       },
       "tools": {
-        "listChanged": true
+        "listChanged": false
       }
     },
     "serverInfo": {
@@ -84,6 +97,7 @@ async fn rx_loop<T: Transport>(
     ct: CancellationToken,
     tx: mpsc::UnboundedSender<Frame>,
     mut stream: SplitStream<Framed<T, McpFraming>>,
+    tools: Arc<Tools>,
 ) {
     tracing::debug!("awaiting initialize message");
 
@@ -170,15 +184,17 @@ async fn rx_loop<T: Transport>(
             Ok(frame) => {
                 tracing::trace!("rx {frame:#?}");
                 for msg in frame.into_messages() {
-                    tokio::task::spawn(
-                        ct.clone()
-                            .run_until_cancelled_owned(handle_message(msg, tx.clone())),
-                    );
+                    tokio::task::spawn(ct.clone().run_until_cancelled_owned(handle_message(
+                        msg,
+                        tools.clone(),
+                        tx.clone(),
+                    )));
                 }
             }
             Err(e) => {
                 tracing::error!("error in wire protocol {e:#?}");
                 ct.cancel();
+                return;
             }
         }
     }
@@ -200,9 +216,20 @@ async fn tx_loop<T: Transport>(
     }
 }
 
-async fn handle_message(msg: Msg, _tx: mpsc::UnboundedSender<Frame>) {
+async fn handle_message(msg: Msg, tools: Arc<Tools>, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
-        Msg::Request(_) => {}
+        Msg::Request(Request {
+            id, method, params, ..
+        }) => match method.as_str() {
+            "tools/list" => {
+                let _ = tx.send(Frame::Single(Msg::Response(Response {
+                    jsonrpc: monostate::MustBe!("2.0"),
+                    id,
+                    result: serde_json::to_value(tools.as_wire()).unwrap(),
+                })));
+            }
+            _ => {}
+        },
         Msg::Error(_) => {}
         Msg::Notification(_) => {}
         Msg::Response(_) => {}

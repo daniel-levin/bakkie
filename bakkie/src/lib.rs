@@ -3,7 +3,10 @@ use thiserror::Error;
 pub use bakkie_derive::{Argument, input};
 
 pub mod framing;
+pub mod prompts;
 pub mod proto;
+pub mod resources;
+pub mod tools;
 
 pub mod schemars {
     pub use schemars::*;

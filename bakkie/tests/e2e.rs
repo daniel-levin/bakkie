@@ -1,6 +1,7 @@
 use bakkie::{
     framing::{Frame, Msg, Request, RequestId, Response, Transport},
     proto::V20250618::McpServer,
+    tools::Tools,
 };
 use futures::{SinkExt, stream::StreamExt};
 use tokio::io::AsyncWriteExt;
@@ -238,14 +239,12 @@ async fn disallows_non_pings_before_inited() -> anyhow::Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn request_tools() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
-
     let (mut client, server) = tokio::io::duplex(64);
 
     tokio::task::spawn(async move {
-        let server = McpServer::new(server);
+        let mut tools = Tools::default();
+
+        let server = McpServer::new_with_tools(server, tools);
 
         server.run().await
     });
@@ -261,7 +260,8 @@ async fn request_tools() -> anyhow::Result<()> {
         .send(serde_json::from_str(INITIALIZED).unwrap())
         .await;
 
-    let ask_for_tools: Request = serde_json::from_str(r#"
+    let ask_for_tools: Request = serde_json::from_str(
+        r#"
     {
         "jsonrpc": "2.0",
         "id": 2,
@@ -269,11 +269,17 @@ async fn request_tools() -> anyhow::Result<()> {
         "params": {
             "cursor": "optional-cursor-value"
         }
-    }"#).unwrap();
+    }"#,
+    )
+    .unwrap();
 
-    let _ = framed.send(Frame::Single(Msg::Request(ask_for_tools))).await;
+    let _ = framed
+        .send(Frame::Single(Msg::Request(ask_for_tools)))
+        .await;
 
-    let _ = framed.next().await;
+    let tools = framed.next().await;
+
+    dbg!(tools);
 
     Ok(())
 }
