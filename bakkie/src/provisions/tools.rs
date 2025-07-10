@@ -50,6 +50,13 @@ impl Tools {
     pub fn insert_tool(&mut self, name: &str, tool: Tool) {
         self.tools.insert(name.to_owned(), tool);
     }
+
+    pub fn schema_tools(&self) -> Result<Vec<SchemaTool>, serde_json::Error> {
+        self.tools
+            .values()
+            .map(|tool| tool.particulars.to_schema_tool())
+            .collect()
+    }
 }
 
 #[cfg(test)]
