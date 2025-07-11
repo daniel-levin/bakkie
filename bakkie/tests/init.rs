@@ -4,7 +4,17 @@ use bakkie::{
     provisions::Provisions,
 };
 use futures::{SinkExt, stream::StreamExt};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
+
+#[derive(JsonSchema, Serialize, Deserialize)]
+struct SearchRequest {
+    query: String,
+    limit: Option<u32>,
+    filters: Vec<String>,
+    case_sensitive: bool,
+}
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn cancels_if_corrupt_on_wire() -> anyhow::Result<()> {
@@ -299,6 +309,19 @@ async fn request_tools() -> anyhow::Result<()> {
         };
         provisions.insert_tool("validate", tool_3).await;
 
+        // Add fourth tool with complex input schema
+        let tool_particulars_4 = bakkie::provisions::tools::ToolParticulars {
+            name: "search".to_string(),
+            title: Some("Search Tool".to_string()),
+            description: Some("Search with complex parameters".to_string()),
+            input_schema: schemars::schema_for!(SearchRequest).into(),
+            output_schema: Some(schemars::schema_for!(Vec<String>).into()),
+        };
+        let tool_4 = bakkie::provisions::tools::Tool {
+            particulars: tool_particulars_4,
+        };
+        provisions.insert_tool("search", tool_4).await;
+
         let server = McpServer::new_with_provisions(server, provisions);
 
         server.run().await
@@ -347,7 +370,7 @@ async fn request_tools() -> anyhow::Result<()> {
     assert_eq!(response.id, RequestId::Integer(2));
 
     let tools_list: Vec<bakkie_schema::V20250618::Tool> = serde_json::from_value(response.result)?;
-    assert_eq!(tools_list.len(), 3);
+    assert_eq!(tools_list.len(), 4);
 
     // Sort tools by name for consistent assertions
     let mut sorted_tools = tools_list;
@@ -357,22 +380,53 @@ async fn request_tools() -> anyhow::Result<()> {
     let calculate_tool = &sorted_tools[0];
     assert_eq!(calculate_tool.name, "calculate");
     assert_eq!(calculate_tool.title, Some("Calculator".to_string()));
-    assert_eq!(calculate_tool.description, Some("Performs basic calculations".to_string()));
+    assert_eq!(
+        calculate_tool.description,
+        Some("Performs basic calculations".to_string())
+    );
     assert_eq!(calculate_tool.input_schema.type_, "integer");
     assert!(calculate_tool.output_schema.is_some());
-    assert_eq!(calculate_tool.output_schema.as_ref().unwrap().type_, "number");
+    assert_eq!(
+        calculate_tool.output_schema.as_ref().unwrap().type_,
+        "number"
+    );
+
+    // Verify "search" tool
+    let search_tool = &sorted_tools[1];
+    assert_eq!(search_tool.name, "search");
+    assert_eq!(search_tool.title, Some("Search Tool".to_string()));
+    assert_eq!(
+        search_tool.description,
+        Some("Search with complex parameters".to_string())
+    );
+    assert_eq!(search_tool.input_schema.type_, "object");
+    assert!(search_tool.output_schema.is_some());
+    assert_eq!(search_tool.output_schema.as_ref().unwrap().type_, "array");
+    // Verify that the input schema has the expected properties
+    assert!(search_tool.input_schema.properties.contains_key("query"));
+    assert!(search_tool.input_schema.properties.contains_key("limit"));
+    assert!(search_tool.input_schema.properties.contains_key("filters"));
+    assert!(
+        search_tool
+            .input_schema
+            .properties
+            .contains_key("case_sensitive")
+    );
 
     // Verify "test_tool" tool
-    let test_tool = &sorted_tools[1];
+    let test_tool = &sorted_tools[2];
     assert_eq!(test_tool.name, "test_tool");
     assert_eq!(test_tool.title, Some("Test Tool".to_string()));
-    assert_eq!(test_tool.description, Some("A simple test tool".to_string()));
+    assert_eq!(
+        test_tool.description,
+        Some("A simple test tool".to_string())
+    );
     assert_eq!(test_tool.input_schema.type_, "string");
     assert!(test_tool.output_schema.is_none());
     assert!(test_tool.annotations.is_none());
 
     // Verify "validate" tool
-    let validate_tool = &sorted_tools[2];
+    let validate_tool = &sorted_tools[3];
     assert_eq!(validate_tool.name, "validate");
     assert!(validate_tool.title.is_none());
     assert!(validate_tool.description.is_none());
