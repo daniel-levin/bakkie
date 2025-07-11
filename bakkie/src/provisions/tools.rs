@@ -1,6 +1,27 @@
+use crate::framing::RequestId;
 use bakkie_schema::V20250618::{Tool as SchemaTool, ToolInputSchema};
 use schemars::Schema;
-use std::collections::HashMap;
+use std::{collections::HashMap, pin::Pin};
+
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ToolError {}
+
+pub struct ToolOutput {}
+
+pub trait IntoToolOutput: Send {
+    fn into_tool_output(self) -> ToolOutput;
+}
+
+pub type ToolFuture =
+    Pin<Box<dyn Future<Output = Result<Box<dyn IntoToolOutput>, ToolError>> + Send>>;
+
+#[allow(dead_code)]
+pub struct ToolInput {
+    pub request_id: RequestId,
+    pub params: serde_json::Map<String, serde_json::Value>,
+}
 
 #[derive(Debug)]
 pub struct ToolParticulars {
@@ -9,16 +30,6 @@ pub struct ToolParticulars {
     pub description: Option<String>,
     pub input_schema: Schema,
     pub output_schema: Option<Schema>,
-}
-
-#[derive(Debug)]
-pub struct Tool {
-    pub particulars: ToolParticulars,
-}
-
-#[derive(Debug, Default)]
-pub struct Tools {
-    tools: HashMap<String, Tool>,
 }
 
 impl ToolParticulars {
@@ -46,6 +57,25 @@ impl ToolParticulars {
     }
 }
 
+pub struct Tool {
+    pub particulars: ToolParticulars,
+    pub tool_fn: Box<dyn Fn(ToolInput) -> ToolFuture + Send + Sync>,
+}
+
+impl std::fmt::Debug for Tool {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Tool")
+            .field("particulars", &self.particulars)
+            .field("tool_fn", &"<closure>")
+            .finish()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Tools {
+    tools: HashMap<String, Tool>,
+}
+
 impl Tools {
     pub fn insert_tool(&mut self, name: &str, tool: Tool) {
         self.tools.insert(name.to_owned(), tool);
@@ -56,6 +86,10 @@ impl Tools {
             .values()
             .map(|tool| tool.particulars.to_schema_tool())
             .collect()
+    }
+
+    pub fn get(&self, name: &str) -> Option<&Tool> {
+        self.tools.get(name)
     }
 }
 

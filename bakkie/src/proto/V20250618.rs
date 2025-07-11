@@ -1,7 +1,7 @@
 use crate::{
-    framing::{Frame, McpFraming, Msg, Notification, Request, Response, Transport},
+    framing::{Frame, McpFraming, Msg, Notification, Request, RequestId, Response, Transport},
     proto::CodecError,
-    provisions::Provisions,
+    provisions::{Provisions, tools::ToolInput},
 };
 use futures::{
     SinkExt,
@@ -266,17 +266,46 @@ impl<T: Transport> Outbox<T> {
 
 async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
-        Msg::Request(Request { id, method, .. }) => {
-            if method.as_str() == "tools/list" {
+        Msg::Request(Request {
+            id, method, params, ..
+        }) => match method.as_str() {
+            "tools/list" => {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
                     jsonrpc: monostate::MustBe!("2.0"),
                     id,
                     result: serde_json::to_value(provisions.schema_tools().await.unwrap()).unwrap(),
                 })));
             }
-        }
+            "tools/call" => {
+                tokio::task::spawn(Box::pin(call_tool(id, params, provisions, tx)));
+            }
+            _ => {}
+        },
         Msg::Error(_) => {}
         Msg::Notification(_) => {}
         Msg::Response(_) => {}
     }
+}
+
+#[allow(unused_variables)]
+async fn call_tool(
+    request_id: RequestId,
+    params: serde_json::Value,
+    provisions: Provisions,
+    tx: mpsc::UnboundedSender<Frame>,
+) {
+    let ctrp =
+        serde_json::from_value::<bakkie_schema::V20250618::CallToolRequestParams>(params).unwrap();
+
+    let input = ToolInput {
+        request_id,
+        params: ctrp.arguments,
+    };
+
+    let prepped_fut = provisions
+        .prepare_tool_future(&ctrp.name, input)
+        .await
+        .unwrap();
+
+    tokio::task::spawn(prepped_fut);
 }

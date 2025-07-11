@@ -279,6 +279,11 @@ async fn request_tools() -> anyhow::Result<()> {
         };
         let tool = bakkie::provisions::tools::Tool {
             particulars: tool_particulars,
+            tool_fn: Box::new(|_| {
+                Box::pin(async {
+                    todo!();
+                })
+            }),
         };
 
         provisions.insert_tool("test_tool", tool).await;
@@ -293,6 +298,11 @@ async fn request_tools() -> anyhow::Result<()> {
         };
         let tool_2 = bakkie::provisions::tools::Tool {
             particulars: tool_particulars_2,
+            tool_fn: Box::new(|_| {
+                Box::pin(async {
+                    todo!();
+                })
+            }),
         };
         provisions.insert_tool("calculate", tool_2).await;
 
@@ -306,6 +316,11 @@ async fn request_tools() -> anyhow::Result<()> {
         };
         let tool_3 = bakkie::provisions::tools::Tool {
             particulars: tool_particulars_3,
+            tool_fn: Box::new(|_| {
+                Box::pin(async {
+                    todo!();
+                })
+            }),
         };
         provisions.insert_tool("validate", tool_3).await;
 
@@ -319,6 +334,11 @@ async fn request_tools() -> anyhow::Result<()> {
         };
         let tool_4 = bakkie::provisions::tools::Tool {
             particulars: tool_particulars_4,
+            tool_fn: Box::new(|_| {
+                Box::pin(async {
+                    todo!();
+                })
+            }),
         };
         provisions.insert_tool("search", tool_4).await;
 
