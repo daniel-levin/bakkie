@@ -24,6 +24,12 @@ pub enum McpServerError {
 
     #[error("error sending outgoing messages")]
     OutboxError(#[from] OutboxError),
+
+    #[error("both inbox and outbox failed")]
+    BothFailed {
+        inbox_error: InboxError,
+        outbox_error: OutboxError,
+    },
 }
 
 #[derive(Debug)]
@@ -76,15 +82,16 @@ impl McpServer {
     }
 
     pub async fn run(self) -> Result<(), McpServerError> {
-        tokio::select! {
-            maybe_faulted_in_inbox = self.inbox_task => {
-                maybe_faulted_in_inbox??;
-                Ok(())
-            },
-            maybe_faulted_in_outbox = self.outbox_task => {
-                maybe_faulted_in_outbox??;
-                Ok(())
-            }
+        let (inbox_result, outbox_result) = tokio::join!(self.inbox_task, self.outbox_task);
+
+        match (inbox_result?, outbox_result?) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(inbox_err), Ok(())) => Err(McpServerError::InboxError(inbox_err)),
+            (Ok(()), Err(outbox_err)) => Err(McpServerError::OutboxError(outbox_err)),
+            (Err(inbox_err), Err(outbox_err)) => Err(McpServerError::BothFailed {
+                inbox_error: inbox_err,
+                outbox_error: outbox_err,
+            }),
         }
     }
 }
