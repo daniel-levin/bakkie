@@ -273,6 +273,32 @@ async fn request_tools() -> anyhow::Result<()> {
 
         provisions.insert_tool("test_tool", tool).await;
 
+        // Add second tool with output schema
+        let tool_particulars_2 = bakkie::provisions::tools::ToolParticulars {
+            name: "calculate".to_string(),
+            title: Some("Calculator".to_string()),
+            description: Some("Performs basic calculations".to_string()),
+            input_schema: schemars::schema_for!(i32).into(),
+            output_schema: Some(schemars::schema_for!(f64).into()),
+        };
+        let tool_2 = bakkie::provisions::tools::Tool {
+            particulars: tool_particulars_2,
+        };
+        provisions.insert_tool("calculate", tool_2).await;
+
+        // Add third tool with no title/description
+        let tool_particulars_3 = bakkie::provisions::tools::ToolParticulars {
+            name: "validate".to_string(),
+            title: None,
+            description: None,
+            input_schema: schemars::schema_for!(bool).into(),
+            output_schema: None,
+        };
+        let tool_3 = bakkie::provisions::tools::Tool {
+            particulars: tool_particulars_3,
+        };
+        provisions.insert_tool("validate", tool_3).await;
+
         let server = McpServer::new_with_provisions(server, provisions);
 
         server.run().await
@@ -321,15 +347,37 @@ async fn request_tools() -> anyhow::Result<()> {
     assert_eq!(response.id, RequestId::Integer(2));
 
     let tools_list: Vec<bakkie_schema::V20250618::Tool> = serde_json::from_value(response.result)?;
-    assert_eq!(tools_list.len(), 1);
+    assert_eq!(tools_list.len(), 3);
 
-    let tool = &tools_list[0];
-    assert_eq!(tool.name, "test_tool");
-    assert_eq!(tool.title, Some("Test Tool".to_string()));
-    assert_eq!(tool.description, Some("A simple test tool".to_string()));
-    assert_eq!(tool.input_schema.type_, "string");
-    assert!(tool.output_schema.is_none());
-    assert!(tool.annotations.is_none());
+    // Sort tools by name for consistent assertions
+    let mut sorted_tools = tools_list;
+    sorted_tools.sort_by(|a, b| a.name.cmp(&b.name));
+
+    // Verify "calculate" tool
+    let calculate_tool = &sorted_tools[0];
+    assert_eq!(calculate_tool.name, "calculate");
+    assert_eq!(calculate_tool.title, Some("Calculator".to_string()));
+    assert_eq!(calculate_tool.description, Some("Performs basic calculations".to_string()));
+    assert_eq!(calculate_tool.input_schema.type_, "integer");
+    assert!(calculate_tool.output_schema.is_some());
+    assert_eq!(calculate_tool.output_schema.as_ref().unwrap().type_, "number");
+
+    // Verify "test_tool" tool
+    let test_tool = &sorted_tools[1];
+    assert_eq!(test_tool.name, "test_tool");
+    assert_eq!(test_tool.title, Some("Test Tool".to_string()));
+    assert_eq!(test_tool.description, Some("A simple test tool".to_string()));
+    assert_eq!(test_tool.input_schema.type_, "string");
+    assert!(test_tool.output_schema.is_none());
+    assert!(test_tool.annotations.is_none());
+
+    // Verify "validate" tool
+    let validate_tool = &sorted_tools[2];
+    assert_eq!(validate_tool.name, "validate");
+    assert!(validate_tool.title.is_none());
+    assert!(validate_tool.description.is_none());
+    assert_eq!(validate_tool.input_schema.type_, "boolean");
+    assert!(validate_tool.output_schema.is_none());
 
     Ok(())
 }
