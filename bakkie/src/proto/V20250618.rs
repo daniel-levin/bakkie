@@ -271,14 +271,14 @@ impl<T: Transport> Outbox<T> {
     }
 }
 
-async fn handle_message(msg: Msg, _provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
+async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
         Msg::Request(Request { id, method, .. }) => {
             if method.as_str() == "tools/list" {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
                     jsonrpc: monostate::MustBe!("2.0"),
                     id,
-                    result: serde_json::to_value("").unwrap(),
+                    result: serde_json::to_value(provisions.schema_tools().await.unwrap()).unwrap(),
                 })));
             }
         }

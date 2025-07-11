@@ -259,6 +259,20 @@ async fn request_tools() -> anyhow::Result<()> {
     tokio::task::spawn(async move {
         let provisions = Provisions::default();
 
+        // Add a test tool
+        let tool_particulars = bakkie::provisions::tools::ToolParticulars {
+            name: "test_tool".to_string(),
+            title: Some("Test Tool".to_string()),
+            description: Some("A simple test tool".to_string()),
+            input_schema: schemars::schema_for!(String).into(),
+            output_schema: None,
+        };
+        let tool = bakkie::provisions::tools::Tool {
+            particulars: tool_particulars,
+        };
+
+        provisions.insert_tool("test_tool", tool).await;
+
         let server = McpServer::new_with_provisions(server, provisions);
 
         server.run().await
@@ -292,7 +306,30 @@ async fn request_tools() -> anyhow::Result<()> {
         .send(Frame::Single(Msg::Request(ask_for_tools)))
         .await;
 
-    let _tools = framed.next().await;
+    let tools = framed.next().await;
+
+    // Destructure the tools response and make assertions
+    let Frame::Single(Msg::Response(response)) =
+        tools.ok_or_else(|| anyhow::anyhow!("No response received"))??
+    else {
+        return Err(anyhow::anyhow!(
+            "Expected response frame, got different message type"
+        ));
+    };
+
+    assert_eq!(response.jsonrpc, monostate::MustBe!("2.0"));
+    assert_eq!(response.id, RequestId::Integer(2));
+
+    let tools_list: Vec<bakkie_schema::V20250618::Tool> = serde_json::from_value(response.result)?;
+    assert_eq!(tools_list.len(), 1);
+
+    let tool = &tools_list[0];
+    assert_eq!(tool.name, "test_tool");
+    assert_eq!(tool.title, Some("Test Tool".to_string()));
+    assert_eq!(tool.description, Some("A simple test tool".to_string()));
+    assert_eq!(tool.input_schema.type_, "string");
+    assert!(tool.output_schema.is_none());
+    assert!(tool.annotations.is_none());
 
     Ok(())
 }
