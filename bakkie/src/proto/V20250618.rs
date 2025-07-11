@@ -307,5 +307,10 @@ async fn call_tool(
         .await
         .unwrap();
 
-    tokio::task::spawn(prepped_fut);
+    tokio::task::spawn(Box::pin(async move {
+        match prepped_fut.await {
+            Ok(tool_output) => {}
+            Err(failure) => {}
+        }
+    }));
 }

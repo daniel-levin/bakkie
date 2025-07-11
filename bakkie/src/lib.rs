@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-pub use bakkie_derive::{Argument, input};
+pub use bakkie_derive::{Argument, input, tool};
 
 pub mod framing;
 pub mod proto;

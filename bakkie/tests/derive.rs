@@ -1,29 +1,15 @@
+#![allow(unused_imports)]
+
 use bakkie::{
     framing::{Frame, Msg, Request, Transport},
     proto::V20250618::McpServer,
-    provisions::Provisions,
+    provisions::{Provisions, tools::ToolError},
 };
 use futures::{SinkExt, stream::StreamExt};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
-#[allow(dead_code)]
-struct SearchResults(Vec<String>);
-
-impl bakkie::provisions::tools::IntoToolOutput for SearchResults {
-    fn into_tool_output(self) -> bakkie::provisions::tools::ToolOutput {
-        bakkie::provisions::tools::ToolOutput {}
-    }
-}
-
-#[derive(JsonSchema, Serialize, Deserialize)]
-struct SearchRequest {
-    query: String,
-    limit: Option<u32>,
-    filters: Vec<String>,
-    case_sensitive: bool,
-}
 
 static INIT: &str = r#"
 {
@@ -53,6 +39,17 @@ static INITIALIZED: &str = r#"
 }
 "#;
 
+#[bakkie::tool(name = "count_letters")]
+async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolError> {
+    Ok(haystack
+        .chars()
+        .filter(|c| *c == needle)
+        .collect::<Vec<_>>()
+        .len())
+}
+
+
+/*
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn call_tool() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
@@ -62,9 +59,9 @@ async fn call_tool() -> anyhow::Result<()> {
         let provisions = Provisions::default();
 
         let tool_particulars_4 = bakkie::provisions::tools::ToolParticulars {
-            name: "search".to_string(),
-            title: Some("Search Tool".to_string()),
-            description: Some("Search with complex parameters".to_string()),
+            name: "count_letters".to_string(),
+            title: Some("Count letters".to_string()),
+            description: Some("Count the number of occurrences of the needle in the haystack".to_string()),
             input_schema: schemars::schema_for!(SearchRequest),
             output_schema: Some(schemars::schema_for!(Vec<String>)),
         };
@@ -162,3 +159,4 @@ async fn call_tool() -> anyhow::Result<()> {
 
     Ok(())
 }
+*/

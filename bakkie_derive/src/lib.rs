@@ -40,3 +40,12 @@ pub fn input(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+#[proc_macro_attribute]
+pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = proc_macro2::TokenStream::from(input);
+
+    let output: proc_macro2::TokenStream = quote! {};
+
+    proc_macro::TokenStream::from(output)
+}

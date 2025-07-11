@@ -274,7 +274,7 @@ async fn request_tools() -> anyhow::Result<()> {
             name: "test_tool".to_string(),
             title: Some("Test Tool".to_string()),
             description: Some("A simple test tool".to_string()),
-            input_schema: schemars::schema_for!(String).into(),
+            input_schema: schemars::schema_for!(String),
             output_schema: None,
         };
         let tool = bakkie::provisions::tools::Tool {
@@ -293,8 +293,8 @@ async fn request_tools() -> anyhow::Result<()> {
             name: "calculate".to_string(),
             title: Some("Calculator".to_string()),
             description: Some("Performs basic calculations".to_string()),
-            input_schema: schemars::schema_for!(i32).into(),
-            output_schema: Some(schemars::schema_for!(f64).into()),
+            input_schema: schemars::schema_for!(i32),
+            output_schema: Some(schemars::schema_for!(f64)),
         };
         let tool_2 = bakkie::provisions::tools::Tool {
             particulars: tool_particulars_2,
@@ -311,7 +311,7 @@ async fn request_tools() -> anyhow::Result<()> {
             name: "validate".to_string(),
             title: None,
             description: None,
-            input_schema: schemars::schema_for!(bool).into(),
+            input_schema: schemars::schema_for!(bool),
             output_schema: None,
         };
         let tool_3 = bakkie::provisions::tools::Tool {
@@ -329,8 +329,8 @@ async fn request_tools() -> anyhow::Result<()> {
             name: "search".to_string(),
             title: Some("Search Tool".to_string()),
             description: Some("Search with complex parameters".to_string()),
-            input_schema: schemars::schema_for!(SearchRequest).into(),
-            output_schema: Some(schemars::schema_for!(Vec<String>).into()),
+            input_schema: schemars::schema_for!(SearchRequest),
+            output_schema: Some(schemars::schema_for!(Vec<String>)),
         };
         let tool_4 = bakkie::provisions::tools::Tool {
             particulars: tool_particulars_4,

@@ -119,7 +119,7 @@ mod tests {
             name: "test_tool".to_string(),
             title: Some("Test Tool".to_string()),
             description: Some("A test tool".to_string()),
-            input_schema: input_schema.into(),
+            input_schema: input_schema,
             output_schema: None,
         };
         let schema_tool = tool_particulars.to_schema_tool().unwrap();
@@ -140,8 +140,8 @@ mod tests {
             name: "test_tool_with_output".to_string(),
             title: None,
             description: None,
-            input_schema: input_schema.into(),
-            output_schema: Some(output_schema.into()),
+            input_schema: input_schema,
+            output_schema: Some(output_schema),
         };
         let schema_tool = tool_particulars.to_schema_tool().unwrap();
 
