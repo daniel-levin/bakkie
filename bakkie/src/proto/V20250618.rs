@@ -104,13 +104,6 @@ static CANNED_HANDSHAKE: &str = r#"
     "protocolVersion": "2025-06-18",
     "capabilities": {
       "logging": {},
-      "prompts": {
-        "listChanged": false
-      },
-      "resources": {
-        "subscribe": false,
-        "listChanged": false
-      },
       "tools": {
         "listChanged": false
       }
