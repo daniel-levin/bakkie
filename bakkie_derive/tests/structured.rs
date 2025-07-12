@@ -1,4 +1,4 @@
-use bakkie::AsJsonSchema;
+use bakkie::Structured;
 
 #[bakkie::structured]
 enum B {

@@ -131,6 +131,7 @@ pub struct Error {
 
 #[cfg(test)]
 mod tests {
+    #![allow(dead_code)]
     use super::*;
     use futures::stream::StreamExt;
     use tokio::io::AsyncWriteExt;

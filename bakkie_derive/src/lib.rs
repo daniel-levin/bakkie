@@ -29,15 +29,17 @@ pub fn structured(_args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::ItemFn);
-    
+
     // Check if this function has a receiver parameter (self, &self, &mut self)
     // which would indicate it's a method
     for param in &input.sig.inputs {
         if let syn::FnArg::Receiver(_) = param {
             return syn::Error::new_spanned(
                 &input.sig.ident,
-                "#[tool] can only be used on bare functions, not methods"
-            ).to_compile_error().into();
+                "#[tool] can only be used on bare functions, not methods",
+            )
+            .to_compile_error()
+            .into();
         }
     }
 
@@ -73,6 +75,11 @@ pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
+    // Build the tool particulars constructor name, e.g. count_letters_particulars
+    let particulars_fn = syn::Ident::new(
+        &format!("{}_particulars", fn_name),
+        fn_name.span(),
+    );
     let output = quote! {
         #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
         #[serde(crate = "bakkie::serde")]
@@ -85,6 +92,17 @@ pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
         #fn_vis #fn_asyncness fn #fn_name(args: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = args;
             #fn_body
+        }
+
+        // Constructor for this tool's static particulars
+        #fn_vis fn #particulars_fn() -> bakkie::provisions::tools::ToolParticulars {
+            bakkie::provisions::tools::ToolParticulars {
+                name: stringify!(#fn_name).to_string(),
+                title: todo!(),
+                description: todo!(),
+                input_schema: bakkie::schemars::schema_for!(#struct_name),
+                output_schema: todo!(),
+            }
         }
     };
 

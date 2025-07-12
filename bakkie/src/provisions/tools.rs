@@ -105,6 +105,7 @@ mod impls {
 
 #[cfg(test)]
 mod tests {
+    #![allow(dead_code)]
     use super::*;
     use schemars::{JsonSchema, schema_for};
     use serde::Deserialize;
