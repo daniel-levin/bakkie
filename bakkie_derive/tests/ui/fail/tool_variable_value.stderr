@@ -1,0 +1,5 @@
+error: expected string literal
+ --> tests/ui/fail/tool_variable_value.rs:5:15
+  |
+5 | #[tool(name = MY_NAME)]
+  |               ^^^^^^^

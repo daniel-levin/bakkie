@@ -1,0 +1,5 @@
+error: expected identifier
+ --> tests/ui/fail/tool_empty_args_invalid_syntax.rs:3:8
+  |
+3 | #[tool(,)]
+  |        ^

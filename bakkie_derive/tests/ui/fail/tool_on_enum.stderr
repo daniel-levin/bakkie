@@ -1,0 +1,5 @@
+error: expected `fn`
+ --> tests/ui/fail/tool_on_enum.rs:4:1
+  |
+4 | enum MyEnum {
+  | ^^^^

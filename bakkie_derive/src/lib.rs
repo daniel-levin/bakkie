@@ -50,9 +50,30 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         };
         match ident.as_deref() {
-            Some("name") => name_lit = Some(lit),
-            Some("title") => title_lit = Some(lit),
-            Some("description") => description_lit = Some(lit),
+            Some("name") => {
+                if name_lit.is_some() {
+                    return syn::Error::new_spanned(nv.path, "duplicate 'name' attribute")
+                        .to_compile_error()
+                        .into();
+                }
+                name_lit = Some(lit);
+            }
+            Some("title") => {
+                if title_lit.is_some() {
+                    return syn::Error::new_spanned(nv.path, "duplicate 'title' attribute")
+                        .to_compile_error()
+                        .into();
+                }
+                title_lit = Some(lit);
+            }
+            Some("description") => {
+                if description_lit.is_some() {
+                    return syn::Error::new_spanned(nv.path, "duplicate 'description' attribute")
+                        .to_compile_error()
+                        .into();
+                }
+                description_lit = Some(lit);
+            }
             _ => {
                 return syn::Error::new_spanned(nv.path, "unknown tool attribute")
                     .to_compile_error()
