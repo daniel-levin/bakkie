@@ -1,6 +1,5 @@
-use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{DeriveInput, parse_macro_input, parse_quote};
 
 #[proc_macro_attribute]
@@ -84,10 +83,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     let fn_asyncness = &input.sig.asyncness;
 
     // Generate struct name from function name
-    let struct_name = syn::Ident::new(
-        &format!("{}Args", fn_name.to_string().to_case(Case::Pascal)),
-        fn_name.span(),
-    );
+    let struct_name = format_ident!("{}Args", fn_name);
 
     // Extract function parameters and create struct fields
     let mut struct_fields = Vec::new();
@@ -109,7 +105,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     // Build the tool particulars constructor name, e.g. count_letters_particulars
-    let particulars_fn = syn::Ident::new(&format!("{}_particulars", fn_name), fn_name.span());
+    let particulars_fn = format_ident!("{}_particulars", fn_name);
     // Prepare expressions for name, title, and description based on attribute args or defaults
     let name_expr = if let Some(lit) = name_lit {
         quote! { #lit.to_string() }
@@ -130,17 +126,20 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
         #[serde(crate = "bakkie::serde")]
         #[schemars(crate = "bakkie::schemars")]
+        #[allow(non_camel_case_types)]
         pub struct #struct_name {
             #(#struct_fields),*
         }
 
         #(#fn_attrs)*
+        #[allow(non_snake_case)]
         #fn_vis #fn_asyncness fn #fn_name(args: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = args;
             #fn_body
         }
 
         // Constructor for this tool's static particulars
+        #[allow(non_snake_case)]
         #fn_vis fn #particulars_fn() -> bakkie::provisions::tools::ToolParticulars {
             bakkie::provisions::tools::ToolParticulars {
                 name: #name_expr,
