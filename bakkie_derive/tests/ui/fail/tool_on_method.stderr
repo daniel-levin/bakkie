@@ -1,0 +1,5 @@
+error: #[tool] can only be used on bare functions, not methods
+ --> tests/ui/fail/tool_on_method.rs:7:14
+  |
+7 |     async fn my_method(&self, param: String) -> Result<String, String> {
+  |              ^^^^^^^^^

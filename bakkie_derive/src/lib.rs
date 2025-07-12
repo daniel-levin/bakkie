@@ -29,6 +29,17 @@ pub fn structured(_args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as syn::ItemFn);
+    
+    // Check if this function has a receiver parameter (self, &self, &mut self)
+    // which would indicate it's a method
+    for param in &input.sig.inputs {
+        if let syn::FnArg::Receiver(_) = param {
+            return syn::Error::new_spanned(
+                &input.sig.ident,
+                "#[tool] can only be used on bare functions, not methods"
+            ).to_compile_error().into();
+        }
+    }
 
     let fn_name = &input.sig.ident;
     let fn_vis = &input.vis;

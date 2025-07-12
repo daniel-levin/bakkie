@@ -1,0 +1,5 @@
+error: #[tool] can only be used on bare functions, not methods
+ --> tests/ui/fail/tool_on_method_mut_self.rs:7:8
+  |
+7 |     fn my_method(&mut self, param: String) -> Result<String, String> {
+  |        ^^^^^^^^^
