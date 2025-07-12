@@ -147,7 +147,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                 title: #title_expr,
                 description: #description_expr,
                 input_schema: bakkie::schemars::schema_for!(#struct_name),
-                output_schema: todo!(),
+                output_schema: None,
             }
         }
     };
