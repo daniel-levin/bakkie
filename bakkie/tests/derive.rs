@@ -5,7 +5,7 @@ use bakkie::{
     proto::V20250618::McpServer,
     provisions::{
         Provisions,
-        tools::{ToolError, ToolFuture},
+        tools::{ToolError, ToolFuture, ToolOutput},
     },
 };
 use futures::{SinkExt, stream::StreamExt};
@@ -50,8 +50,8 @@ async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolErro
         .len())
 }
 
-#[test]
-fn test_macro_generates_struct() {
+#[tokio::test]
+async fn test_macro_generates_struct() {
     // Test that the macro generated a struct and function that works
     let args = count_lettersArgs {
         needle: 'a',
@@ -64,6 +64,13 @@ fn test_macro_generates_struct() {
             Err(e) => Err(e),
         }
     });
+
+    let x = (count_letters_tool().tool_fn)(todo!())
+        .await
+        .unwrap();
+
+
+    let f: ToolOutput = x.into_tool_output();
 }
 
 #[test]

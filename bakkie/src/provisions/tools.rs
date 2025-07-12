@@ -14,11 +14,11 @@ pub enum ToolError {
 pub enum ToolOutput {}
 
 pub trait IntoToolOutput: Send {
-    fn into_tool_output(self) -> ToolOutput;
+    fn into_tool_output(&self) -> ToolOutput;
 }
 
 impl IntoToolOutput for () {
-    fn into_tool_output(self) -> ToolOutput {
+    fn into_tool_output(&self) -> ToolOutput {
         todo!()
     }
 }
@@ -106,13 +106,13 @@ mod impls {
     use super::*;
 
     impl IntoToolOutput for usize {
-        fn into_tool_output(self) -> ToolOutput {
+        fn into_tool_output(&self) -> ToolOutput {
             todo!();
         }
     }
 
     impl IntoToolOutput for String {
-        fn into_tool_output(self) -> ToolOutput {
+        fn into_tool_output(&self) -> ToolOutput {
             todo!();
         }
     }
