@@ -1,11 +1,11 @@
 #![allow(unused_imports)]
 
 use bakkie::{
-    framing::{Frame, Msg, Request, Transport},
+    framing::{Frame, Msg, Request, RequestId, Transport},
     proto::V20250618::McpServer,
     provisions::{
         Provisions,
-        tools::{ToolError, ToolFuture, ToolOutput},
+        tools::{ToolError, ToolFuture, ToolInput, ToolOutput},
     },
 };
 use futures::{SinkExt, stream::StreamExt};
@@ -65,12 +65,26 @@ async fn test_macro_generates_struct() {
         }
     });
 
-    let x = (count_letters_tool().tool_fn)(todo!())
-        .await
-        .unwrap();
+    let params: serde_json::Map<String, serde_json::Value> = serde_json::from_str(
+        r#"
+        {
+        "needle": "a",
+        "haystack": "banana"
+        }
+        "#,
+    )
+    .unwrap();
 
+    let x = (count_letters_tool().tool_fn)(ToolInput {
+        request_id: RequestId::String("1".into()),
+        params,
+    })
+    .await
+    .unwrap();
 
     let f: ToolOutput = x.into_tool_output();
+
+    dbg!(f);
 }
 
 #[test]

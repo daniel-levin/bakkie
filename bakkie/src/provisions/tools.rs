@@ -11,7 +11,10 @@ pub enum ToolError {
     InvalidInput(String),
 }
 
-pub enum ToolOutput {}
+#[derive(Debug)]
+pub enum ToolOutput {
+    Number(usize),
+}
 
 pub trait IntoToolOutput: Send {
     fn into_tool_output(&self) -> ToolOutput;
@@ -107,7 +110,7 @@ mod impls {
 
     impl IntoToolOutput for usize {
         fn into_tool_output(&self) -> ToolOutput {
-            todo!();
+            ToolOutput::Number(*self)
         }
     }
 
