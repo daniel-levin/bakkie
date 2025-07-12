@@ -10,7 +10,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
-
 static INIT: &str = r#"
 {
   "jsonrpc": "2.0",
@@ -48,6 +47,17 @@ async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolErro
         .len())
 }
 
+#[test]
+fn test_macro_generates_struct() {
+    // Test that the macro generated a struct and function that works
+    let args = CountLettersArgs {
+        needle: 'a',
+        haystack: "banana".to_string(),
+    };
+
+    let result = tokio_test::block_on(async { count_letters(args).await }).unwrap();
+    assert_eq!(result, 3); // 'a' appears 3 times in "banana"
+}
 
 /*
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

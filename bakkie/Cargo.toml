@@ -27,3 +27,4 @@ monostate = "0.1.14"
 anyhow = "1"
 insta = { version = "1", features = ["serde", "json"] }
 tracing-subscriber = "0.3"
+tokio-test = "0.4"
