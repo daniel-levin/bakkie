@@ -1,17 +1,26 @@
 use crate::framing::RequestId;
 use bakkie_schema::V20250618::{Tool as SchemaTool, ToolInputSchema};
 use schemars::Schema;
-use std::{collections::HashMap, pin::Pin};
+use std::{collections::HashMap, future::Future, pin::Pin};
 
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ToolError {}
+pub enum ToolError {
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+}
 
 pub enum ToolOutput {}
 
 pub trait IntoToolOutput: Send {
     fn into_tool_output(self) -> ToolOutput;
+}
+
+impl IntoToolOutput for () {
+    fn into_tool_output(self) -> ToolOutput {
+        todo!()
+    }
 }
 
 pub type ToolFuture =
@@ -97,6 +106,12 @@ mod impls {
     use super::*;
 
     impl IntoToolOutput for usize {
+        fn into_tool_output(self) -> ToolOutput {
+            todo!();
+        }
+    }
+
+    impl IntoToolOutput for String {
         fn into_tool_output(self) -> ToolOutput {
             todo!();
         }

@@ -127,6 +127,8 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
     // Build the tool particulars constructor name, e.g. count_letters_particulars
     let particulars_fn = format_ident!("{}_particulars", fn_name);
+    // Build the complete tool constructor name, e.g. count_letters_tool
+    let tool_fn = format_ident!("{}_tool", fn_name);
     // Prepare expressions for name, title, and description based on attribute args or defaults
     let name_expr = if let Some(lit) = name_lit {
         quote! { #lit.to_string() }
@@ -154,7 +156,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #(#fn_attrs)*
         #[allow(non_snake_case)]
-        #fn_vis #fn_asyncness fn #fn_name(args: #struct_name) #fn_output {
+        #fn_vis async fn #fn_name(args: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = args;
             #fn_body
         }
@@ -168,6 +170,31 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                 description: #description_expr,
                 input_schema: bakkie::schemars::schema_for!(#struct_name),
                 output_schema: None,
+            }
+        }
+
+        // Constructor for the complete tool
+        #[allow(non_snake_case)]
+        #fn_vis fn #tool_fn() -> bakkie::provisions::tools::Tool {
+            bakkie::provisions::tools::Tool {
+                particulars: #particulars_fn(),
+                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput| {
+                    Box::pin(async move {
+                        // Parse the input parameters from JSON
+                        let args: #struct_name = match serde_json::from_value(
+                            serde_json::Value::Object(tool_input.params)
+                        ) {
+                            Ok(args) => args,
+                            Err(e) => return Err(bakkie::provisions::tools::ToolError::InvalidInput(e.to_string())),
+                        };
+
+                        // Call the actual tool function
+                        match #fn_name(args).await {
+                            Ok(result) => Ok(Box::new(result) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
+                            Err(e) => Err(e),
+                        }
+                    })
+                }),
             }
         }
     };

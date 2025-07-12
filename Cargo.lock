@@ -106,6 +106,7 @@ dependencies = [
  "quote",
  "serde_json",
  "syn",
+ "tokio",
  "trybuild",
 ]
 

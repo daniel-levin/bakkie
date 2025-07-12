@@ -16,3 +16,4 @@ bakkie = "0.1"
 serde_json = "1.0.40"
 insta = { version = "1", features = ["serde", "json"] }
 trybuild = "1.0"
+tokio = { version = "1.0", features = ["macros", "rt"] }
