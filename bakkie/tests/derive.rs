@@ -53,7 +53,7 @@ async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolErro
 #[test]
 fn test_macro_generates_struct() {
     // Test that the macro generated a struct and function that works
-    let args = CountLettersArgs {
+    let args = count_lettersArgs {
         needle: 'a',
         haystack: "banana".to_string(),
     };
@@ -69,7 +69,7 @@ fn test_macro_generates_struct() {
 #[test]
 fn test_macro_generates_struct_old() {
     // Test that the macro generated a struct and function that works
-    let args = CountLettersArgs {
+    let args = count_lettersArgs {
         needle: 'a',
         haystack: "banana".to_string(),
     };
@@ -93,7 +93,7 @@ async fn remember_location(name: String, location: Location) -> Result<usize, To
 #[test]
 fn test_macro_generates_struct2() {
     // Test that the macro generated a struct and function that works
-    let args = RememberLocationArgs {
+    let args = remember_locationArgs {
         name: "".into(),
         location: Location { lat: 0.0, lon: 0.0 },
     };
