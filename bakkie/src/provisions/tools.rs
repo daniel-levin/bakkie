@@ -8,7 +8,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum ToolError {}
 
-pub struct ToolOutput {}
+pub enum ToolOutput {}
 
 pub trait IntoToolOutput: Send {
     fn into_tool_output(self) -> ToolOutput;
@@ -90,6 +90,16 @@ impl Tools {
 
     pub fn get(&self, name: &str) -> Option<&Tool> {
         self.tools.get(name)
+    }
+}
+
+mod impls {
+    use super::*;
+
+    impl IntoToolOutput for usize {
+        fn into_tool_output(self) -> ToolOutput {
+            todo!();
+        }
     }
 }
 

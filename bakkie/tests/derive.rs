@@ -3,7 +3,10 @@
 use bakkie::{
     framing::{Frame, Msg, Request, Transport},
     proto::V20250618::McpServer,
-    provisions::{Provisions, tools::ToolError},
+    provisions::{
+        Provisions,
+        tools::{ToolError, ToolFuture},
+    },
 };
 use futures::{SinkExt, stream::StreamExt};
 use schemars::JsonSchema;
@@ -49,6 +52,22 @@ async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolErro
 
 #[test]
 fn test_macro_generates_struct() {
+    // Test that the macro generated a struct and function that works
+    let args = CountLettersArgs {
+        needle: 'a',
+        haystack: "banana".to_string(),
+    };
+
+    let t: ToolFuture = Box::pin(async move {
+        match count_letters(args).await {
+            Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
+            Err(e) => Err(e),
+        }
+    });
+}
+
+#[test]
+fn test_macro_generates_struct_old() {
     // Test that the macro generated a struct and function that works
     let args = CountLettersArgs {
         needle: 'a',

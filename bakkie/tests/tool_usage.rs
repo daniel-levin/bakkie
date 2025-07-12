@@ -13,7 +13,7 @@ struct SearchResults(Vec<String>);
 
 impl bakkie::provisions::tools::IntoToolOutput for SearchResults {
     fn into_tool_output(self) -> bakkie::provisions::tools::ToolOutput {
-        bakkie::provisions::tools::ToolOutput {}
+        todo!()
     }
 }
 
