@@ -27,7 +27,40 @@ pub fn structured(_args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
+pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
+    // parse named arguments: name, title, description as name = "value" pairs
+    let args = parse_macro_input!(args with syn::punctuated::Punctuated::<syn::MetaNameValue, syn::Token![,]>::parse_terminated);
+    let mut name_lit: Option<syn::LitStr> = None;
+    let mut title_lit: Option<syn::LitStr> = None;
+    let mut description_lit: Option<syn::LitStr> = None;
+    for nv in args {
+        let ident = nv.path.get_ident().map(|i| i.to_string());
+        let lit = match nv.value {
+            syn::Expr::Lit(expr_lit) => match expr_lit.lit {
+                syn::Lit::Str(l) => l,
+                other => {
+                    return syn::Error::new_spanned(other, "expected string literal")
+                        .to_compile_error()
+                        .into();
+                }
+            },
+            other => {
+                return syn::Error::new_spanned(other, "expected string literal")
+                    .to_compile_error()
+                    .into();
+            }
+        };
+        match ident.as_deref() {
+            Some("name") => name_lit = Some(lit),
+            Some("title") => title_lit = Some(lit),
+            Some("description") => description_lit = Some(lit),
+            _ => {
+                return syn::Error::new_spanned(nv.path, "unknown tool attribute")
+                    .to_compile_error()
+                    .into();
+            }
+        }
+    }
     let input = parse_macro_input!(input as syn::ItemFn);
 
     // Check if this function has a receiver parameter (self, &self, &mut self)
@@ -76,10 +109,23 @@ pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     // Build the tool particulars constructor name, e.g. count_letters_particulars
-    let particulars_fn = syn::Ident::new(
-        &format!("{}_particulars", fn_name),
-        fn_name.span(),
-    );
+    let particulars_fn = syn::Ident::new(&format!("{}_particulars", fn_name), fn_name.span());
+    // Prepare expressions for name, title, and description based on attribute args or defaults
+    let name_expr = if let Some(lit) = name_lit {
+        quote! { #lit.to_string() }
+    } else {
+        quote! { stringify!(#fn_name).to_string() }
+    };
+    let title_expr = if let Some(lit) = title_lit {
+        quote! { Some(#lit.to_string()) }
+    } else {
+        quote! { None }
+    };
+    let description_expr = if let Some(lit) = description_lit {
+        quote! { Some(#lit.to_string()) }
+    } else {
+        quote! { None }
+    };
     let output = quote! {
         #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
         #[serde(crate = "bakkie::serde")]
@@ -97,9 +143,9 @@ pub fn tool(_args: TokenStream, input: TokenStream) -> TokenStream {
         // Constructor for this tool's static particulars
         #fn_vis fn #particulars_fn() -> bakkie::provisions::tools::ToolParticulars {
             bakkie::provisions::tools::ToolParticulars {
-                name: stringify!(#fn_name).to_string(),
-                title: todo!(),
-                description: todo!(),
+                name: #name_expr,
+                title: #title_expr,
+                description: #description_expr,
                 input_schema: bakkie::schemars::schema_for!(#struct_name),
                 output_schema: todo!(),
             }
