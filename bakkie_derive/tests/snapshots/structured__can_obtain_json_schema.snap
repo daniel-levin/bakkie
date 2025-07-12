@@ -1,0 +1,53 @@
+---
+source: bakkie_derive/tests/structured.rs
+expression: schema
+---
+{
+  "$defs": {
+    "B": {
+      "oneOf": [
+        {
+          "enum": [
+            "Nothing"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "Something": {
+              "properties": {
+                "field": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "Something"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "a": {
+      "type": "string"
+    },
+    "b": {
+      "$ref": "#/$defs/B"
+    }
+  },
+  "required": [
+    "a",
+    "b"
+  ],
+  "title": "S",
+  "type": "object"
+}

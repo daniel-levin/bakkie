@@ -78,6 +78,34 @@ fn test_macro_generates_struct_old() {
     assert_eq!(result, 3); // 'a' appears 3 times in "banana"
 }
 
+#[bakkie::structured]
+#[derive(Default)]
+pub struct Location {
+    lat: f64,
+    lon: f64,
+}
+
+#[bakkie::tool(name = "count_letters")]
+async fn remember_location(name: String, location: Location) -> Result<usize, ToolError> {
+    todo!();
+}
+
+#[test]
+fn test_macro_generates_struct2() {
+    // Test that the macro generated a struct and function that works
+    let args = RememberLocationArgs {
+        name: "".into(),
+        location: Location { lat: 0.0, lon: 0.0 },
+    };
+
+    let t: ToolFuture = Box::pin(async move {
+        match remember_location(args).await {
+            Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
+            Err(e) => Err(e),
+        }
+    });
+}
+
 /*
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn call_tool() -> anyhow::Result<()> {

@@ -100,9 +100,12 @@ dependencies = [
 name = "bakkie_derive"
 version = "0.1.0"
 dependencies = [
+ "bakkie",
  "convert_case",
+ "insta",
  "proc-macro2",
  "quote",
+ "serde_json",
  "syn",
 ]
 
