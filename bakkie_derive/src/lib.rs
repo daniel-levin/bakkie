@@ -101,7 +101,6 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     let fn_attrs = &input.attrs;
     let fn_output = &input.sig.output;
     let fn_body = &input.block;
-    let fn_asyncness = &input.sig.asyncness;
 
     // Generate struct name from function name
     let struct_name = format_ident!("{}Args", fn_name);

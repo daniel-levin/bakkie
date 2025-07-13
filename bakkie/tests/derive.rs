@@ -52,19 +52,6 @@ async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolErro
 
 #[tokio::test]
 async fn test_macro_generates_struct() {
-    // Test that the macro generated a struct and function that works
-    let args = count_lettersArgs {
-        needle: 'a',
-        haystack: "banana".to_string(),
-    };
-
-    let t: ToolFuture = Box::pin(async move {
-        match count_letters(args).await {
-            Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
-            Err(e) => Err(e),
-        }
-    });
-
     let params: serde_json::Map<String, serde_json::Value> = serde_json::from_str(
         r#"
         {
