@@ -1,0 +1,5 @@
+error: #[tool] can only be used on async functions
+ --> tests/ui/fail/tool_on_sync_function.rs:4:4
+  |
+4 | fn sync_function(param: String) -> String {
+  |    ^^^^^^^^^^^^^

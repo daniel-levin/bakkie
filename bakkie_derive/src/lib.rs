@@ -96,6 +96,16 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
+    // Check if this function is async
+    if input.sig.asyncness.is_none() {
+        return syn::Error::new_spanned(
+            &input.sig.ident,
+            "#[tool] can only be used on async functions",
+        )
+        .to_compile_error()
+        .into();
+    }
+
     let fn_name = &input.sig.ident;
     let fn_vis = &input.vis;
     let fn_attrs = &input.attrs;

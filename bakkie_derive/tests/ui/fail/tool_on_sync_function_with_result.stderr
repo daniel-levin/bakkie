@@ -1,0 +1,13 @@
+error: #[tool] can only be used on async functions
+ --> tests/ui/fail/tool_on_sync_function_with_result.rs:5:4
+  |
+5 | fn sync_function_with_result(param: String) -> Result<String, ToolError> {
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `bakkie::provisions::tools::ToolError`
+ --> tests/ui/fail/tool_on_sync_function_with_result.rs:2:5
+  |
+2 | use bakkie::provisions::tools::ToolError;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
