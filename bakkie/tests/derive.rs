@@ -125,7 +125,7 @@ async fn test_tool_func(param: String) -> Result<String, ToolError> {
 async fn test_naming_convention() {
     // Now test_tool_func() returns a Tool struct
     let tool = test_tool_func();
-    println!("Tool name: {}", tool.particulars.name);
+    assert_eq!(tool.particulars.name, "test_tool_func");
 
     // The implementation is available as test_tool_func_impl()
     let args = test_tool_funcArgs {
