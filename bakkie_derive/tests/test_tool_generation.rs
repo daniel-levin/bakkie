@@ -12,7 +12,7 @@ async fn test_function(message: String, count: u32) -> Result<String, ToolError>
 #[tokio::test]
 async fn test_generated_tool_fn() {
     // Get the generated tool
-    let tool = test_function_tool();
+    let tool = test_function();
 
     // Create test input
     let mut params = serde_json::Map::new();

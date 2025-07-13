@@ -64,7 +64,7 @@ async fn test_macro_generates_struct() {
     )
     .unwrap();
 
-    let x = (count_letters_tool().tool_fn)(ToolInput {
+    let x = (count_letters().tool_fn)(ToolInput {
         request_id: RequestId::String("1".into()),
         params,
     })
@@ -84,7 +84,7 @@ fn test_macro_generates_struct_old() {
         haystack: "banana".to_string(),
     };
 
-    let result = tokio_test::block_on(async { count_letters(args).await }).unwrap();
+    let result = tokio_test::block_on(async { count_letters_impl(args).await }).unwrap();
     assert_eq!(result, 3); // 'a' appears 3 times in "banana"
 }
 
@@ -109,11 +109,30 @@ fn test_macro_generates_struct2() {
     };
 
     let t: ToolFuture = Box::pin(async move {
-        match remember_location(args).await {
+        match remember_location_impl(args).await {
             Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
             Err(e) => Err(e),
         }
     });
+}
+
+#[bakkie::tool]
+async fn test_tool_func(param: String) -> Result<String, ToolError> {
+    Ok(param)
+}
+
+#[tokio::test]
+async fn test_naming_convention() {
+    // Now test_tool_func() returns a Tool struct
+    let tool = test_tool_func();
+    println!("Tool name: {}", tool.particulars.name);
+
+    // The implementation is available as test_tool_func_impl()
+    let args = test_tool_funcArgs {
+        param: "test".to_string(),
+    };
+    let result = test_tool_func_impl(args).await.unwrap();
+    assert_eq!(result, "test");
 }
 
 /*

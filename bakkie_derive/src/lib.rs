@@ -134,10 +134,11 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
-    // Build the tool particulars constructor name, e.g. count_letters_particulars
+    // Build function names: swap so tool constructor gets original name
+    let impl_fn_name = format_ident!("{}_impl", fn_name); // Original function renamed
     let particulars_fn = format_ident!("{}_particulars", fn_name);
-    // Build the complete tool constructor name, e.g. count_letters_tool
-    let tool_fn = format_ident!("{}_tool", fn_name);
+    // Tool constructor gets the original function name
+    let tool_fn_name = fn_name.clone();
     // Prepare expressions for name, title, and description based on attribute args or defaults
     let name_expr = if let Some(lit) = name_lit {
         quote! { #lit.to_string() }
@@ -165,7 +166,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #(#fn_attrs)*
         #[allow(non_snake_case)]
-        #fn_vis async fn #fn_name(args: #struct_name) #fn_output {
+        #fn_vis async fn #impl_fn_name(args: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = args;
             #fn_body
         }
@@ -184,7 +185,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         // Constructor for the complete tool
         #[allow(non_snake_case)]
-        #fn_vis fn #tool_fn() -> bakkie::provisions::tools::Tool {
+        #fn_vis fn #tool_fn_name() -> bakkie::provisions::tools::Tool {
             bakkie::provisions::tools::Tool {
                 particulars: #particulars_fn(),
                 tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput| {
@@ -198,7 +199,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                         };
 
                         // Call the actual tool function
-                        match #fn_name(args).await {
+                        match #impl_fn_name(args).await {
                             Ok(result) => Ok(Box::new(result) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
                             Err(e) => Err(e),
                         }
