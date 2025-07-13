@@ -1,6 +1,7 @@
 use crate::framing::RequestId;
 use bakkie_schema::V20250618::{Tool as SchemaTool, ToolInputSchema};
 use schemars::Schema;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, future::Future, pin::Pin};
 
 use thiserror::Error;
@@ -11,18 +12,26 @@ pub enum ToolError {
     InvalidInput(String),
 }
 
-#[derive(Debug)]
-pub enum ToolOutput {
-    Number(usize),
-}
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ToolOutput(pub bakkie_schema::V20250618::CallToolResult);
 
 pub trait IntoToolOutput: Send {
     fn into_tool_output(&self) -> ToolOutput;
 }
 
-impl IntoToolOutput for () {
+impl<T: crate::Structured + Send> IntoToolOutput for T {
     fn into_tool_output(&self) -> ToolOutput {
-        todo!()
+        let mut structured_content = serde_json::Map::default();
+
+        structured_content.insert("result".to_owned(), self.as_json_value());
+
+        ToolOutput(bakkie_schema::V20250618::CallToolResult {
+            content: vec![],
+            is_error: None,
+            meta: serde_json::Map::default(),
+            structured_content,
+        })
     }
 }
 
@@ -74,6 +83,12 @@ pub struct Tool {
     pub tool_fn: Box<dyn Fn(ToolInput) -> ToolFuture + Send + Sync>,
 }
 
+impl Tool {
+    pub fn name(&self) -> &str {
+        &self.particulars.name
+    }
+}
+
 impl std::fmt::Debug for Tool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Tool")
@@ -89,8 +104,8 @@ pub struct Tools {
 }
 
 impl Tools {
-    pub fn insert_tool(&mut self, name: &str, tool: Tool) {
-        self.tools.insert(name.to_owned(), tool);
+    pub fn insert_tool(&mut self, name: String, tool: Tool) {
+        self.tools.insert(name, tool);
     }
 
     pub fn schema_tools(&self) -> Result<Vec<SchemaTool>, serde_json::Error> {
@@ -102,22 +117,6 @@ impl Tools {
 
     pub fn get(&self, name: &str) -> Option<&Tool> {
         self.tools.get(name)
-    }
-}
-
-mod impls {
-    use super::*;
-
-    impl IntoToolOutput for usize {
-        fn into_tool_output(&self) -> ToolOutput {
-            ToolOutput::Number(*self)
-        }
-    }
-
-    impl IntoToolOutput for String {
-        fn into_tool_output(&self) -> ToolOutput {
-            todo!();
-        }
     }
 }
 

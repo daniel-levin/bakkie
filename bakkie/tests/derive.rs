@@ -52,30 +52,6 @@ async fn count_letters(needle: char, haystack: String) -> Result<usize, ToolErro
         .len())
 }
 
-#[tokio::test]
-async fn test_macro_generates_struct() {
-    let params: serde_json::Map<String, serde_json::Value> = serde_json::from_str(
-        r#"
-        {
-        "needle": "a",
-        "haystack": "banana"
-        }
-        "#,
-    )
-    .unwrap();
-
-    let x = (count_letters().tool_fn)(ToolInput {
-        request_id: RequestId::String("1".into()),
-        params,
-    })
-    .await
-    .unwrap();
-
-    let f: ToolOutput = x.into_tool_output();
-
-    dbg!(f);
-}
-
 #[test]
 fn test_macro_generates_struct_old() {
     // Test that the macro generated a struct and function that works
@@ -146,7 +122,7 @@ async fn call_derived_tool() -> anyhow::Result<()> {
 
     tokio::task::spawn(async move {
         let provisions = Provisions::default();
-        provisions.insert_tool("greet", greet()).await;
+        provisions.insert_tool(greet()).await;
 
         let server = McpServer::new_with_provisions(server, provisions);
 
@@ -182,6 +158,29 @@ async fn call_derived_tool() -> anyhow::Result<()> {
         .await;
 
     let _tools_response = framed.next().await;
+
+    // Now call the greet tool
+    let call_tool_request: Request = serde_json::from_str(
+        r#"
+    {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+            "name": "greet",
+            "arguments": {
+                "name": "World"
+            }
+        }
+    }"#,
+    )
+    .unwrap();
+
+    let _ = framed
+        .send(Frame::Single(Msg::Request(call_tool_request)))
+        .await;
+
+    let _tool_response = framed.next().await;
 
     Ok(())
 }

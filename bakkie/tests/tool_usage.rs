@@ -9,13 +9,8 @@ use serde::{Deserialize, Serialize};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
 #[allow(dead_code)]
+#[bakkie::structured]
 struct SearchResults(Vec<String>);
-
-impl bakkie::provisions::tools::IntoToolOutput for SearchResults {
-    fn into_tool_output(&self) -> bakkie::provisions::tools::ToolOutput {
-        todo!()
-    }
-}
 
 #[derive(JsonSchema, Serialize, Deserialize)]
 struct SearchRequest {
@@ -95,7 +90,7 @@ async fn call_tool() -> anyhow::Result<()> {
                 })
             }),
         };
-        provisions.insert_tool("search", tool_4).await;
+        provisions.insert_tool(tool_4).await;
 
         let server = McpServer::new_with_provisions(server, provisions);
 

@@ -12,9 +12,9 @@ pub struct Provisions {
 }
 
 impl Provisions {
-    pub async fn insert_tool(&self, name: &str, tool: Tool) {
+    pub async fn insert_tool(&self, tool: Tool) {
         let mut tools = self.tools.write().await;
-        tools.insert_tool(name, tool);
+        tools.insert_tool(tool.name().to_owned(), tool);
     }
 
     pub async fn schema_tools(

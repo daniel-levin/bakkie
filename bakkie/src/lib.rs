@@ -21,6 +21,8 @@ pub trait Structured: Sized {
     fn as_json_schema() -> serde_json::Value;
 
     fn from_json(j: Map<String, Value>) -> Result<Self, serde_json::Error>;
+
+    fn as_json_value(&self) -> serde_json::Value;
 }
 
 impl<T> Structured for T
@@ -34,6 +36,10 @@ where
 
     fn from_json(j: Map<String, Value>) -> Result<Self, serde_json::Error> {
         serde_json::from_value(Value::Object(j))
+    }
+
+    fn as_json_value(&self) -> serde_json::Value {
+        serde_json::to_value(&self).unwrap()
     }
 }
 

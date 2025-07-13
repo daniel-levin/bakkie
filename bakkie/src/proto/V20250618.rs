@@ -297,6 +297,8 @@ async fn call_tool(
     let ctrp =
         serde_json::from_value::<bakkie_schema::V20250618::CallToolRequestParams>(params).unwrap();
 
+    let id = request_id.clone();
+
     let input = ToolInput {
         request_id,
         params: ctrp.arguments,
@@ -309,7 +311,14 @@ async fn call_tool(
 
     tokio::task::spawn(Box::pin(async move {
         match prepped_fut.await {
-            Ok(tool_output) => {}
+            Ok(tool_output) => {
+                let to = tool_output.into_tool_output();
+                let _ = tx.send(Frame::Single(Msg::Response(Response {
+                    id,
+                    jsonrpc: monostate::MustBe!("2.0"),
+                    result: serde_json::to_value(to).unwrap(),
+                })));
+            }
             Err(failure) => {}
         }
     }));

@@ -286,7 +286,7 @@ async fn request_tools() -> anyhow::Result<()> {
             }),
         };
 
-        provisions.insert_tool("test_tool", tool).await;
+        provisions.insert_tool(tool).await;
 
         // Add second tool with output schema
         let tool_particulars_2 = bakkie::provisions::tools::ToolParticulars {
@@ -304,7 +304,7 @@ async fn request_tools() -> anyhow::Result<()> {
                 })
             }),
         };
-        provisions.insert_tool("calculate", tool_2).await;
+        provisions.insert_tool(tool_2).await;
 
         // Add third tool with no title/description
         let tool_particulars_3 = bakkie::provisions::tools::ToolParticulars {
@@ -322,7 +322,7 @@ async fn request_tools() -> anyhow::Result<()> {
                 })
             }),
         };
-        provisions.insert_tool("validate", tool_3).await;
+        provisions.insert_tool(tool_3).await;
 
         // Add fourth tool with complex input schema
         let tool_particulars_4 = bakkie::provisions::tools::ToolParticulars {
@@ -340,7 +340,7 @@ async fn request_tools() -> anyhow::Result<()> {
                 })
             }),
         };
-        provisions.insert_tool("search", tool_4).await;
+        provisions.insert_tool(tool_4).await;
 
         let server = McpServer::new_with_provisions(server, provisions);
 
