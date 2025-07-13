@@ -135,50 +135,18 @@ async fn test_naming_convention() {
     assert_eq!(result, "test");
 }
 
-/*
+#[bakkie::tool]
+async fn greet(name: String) -> Result<String, ToolError> {
+    Ok(format!("Hello, {name}"))
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn call_tool() -> anyhow::Result<()> {
+async fn call_derived_tool() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
-    let (tx, mut rx) = mpsc::unbounded_channel();
 
     tokio::task::spawn(async move {
         let provisions = Provisions::default();
-
-        let tool_particulars_4 = bakkie::provisions::tools::ToolParticulars {
-            name: "count_letters".to_string(),
-            title: Some("Count letters".to_string()),
-            description: Some("Count the number of occurrences of the needle in the haystack".to_string()),
-            input_schema: schemars::schema_for!(SearchRequest),
-            output_schema: Some(schemars::schema_for!(Vec<String>)),
-        };
-        let tx_for_tool = tx.clone();
-        let tool_4 = bakkie::provisions::tools::Tool {
-            particulars: tool_particulars_4,
-            tool_fn: Box::new(move |tool_input| {
-                let tx_for_future = tx_for_tool.clone();
-                Box::pin(async move {
-                    // Parse the input parameters
-                    let search_req: SearchRequest =
-                        serde_json::from_value(serde_json::Value::Object(tool_input.params))
-                            .unwrap();
-
-                    // Simulate search results
-                    let results = vec![
-                        format!("Found: {}", search_req.query),
-                        "Result 1".to_string(),
-                        "Result 2".to_string(),
-                    ];
-
-                    // Send completion signal
-                    let _ = tx_for_future.send(search_req.query.clone());
-
-                    // Return the results (though the server doesn't yet handle responses)
-                    Ok(Box::new(SearchResults(results))
-                        as Box<dyn bakkie::provisions::tools::IntoToolOutput>)
-                })
-            }),
-        };
-        provisions.insert_tool("search", tool_4).await;
+        provisions.insert_tool("greet", greet()).await;
 
         let server = McpServer::new_with_provisions(server, provisions);
 
@@ -215,34 +183,5 @@ async fn call_tool() -> anyhow::Result<()> {
 
     let _tools_response = framed.next().await;
 
-    // Now call the search tool
-    let call_tool_request: Request = serde_json::from_str(
-        r#"
-    {
-        "jsonrpc": "2.0",
-        "id": 3,
-        "method": "tools/call",
-        "params": {
-            "name": "search",
-            "arguments": {
-                "query": "rust programming",
-                "limit": 10,
-                "filters": ["documentation", "examples"],
-                "case_sensitive": false
-            }
-        }
-    }"#,
-    )
-    .unwrap();
-
-    let _ = framed
-        .send(Frame::Single(Msg::Request(call_tool_request)))
-        .await;
-
-    // Wait for the tool to complete and verify it was called
-    let received_query = rx.recv().await.unwrap();
-    assert_eq!(received_query, "rust programming");
-
     Ok(())
 }
-*/
