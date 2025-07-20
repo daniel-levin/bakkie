@@ -40,8 +40,8 @@ impl Decoder for McpFraming {
 
         match sd.next() {
             Some(Ok(msg)) => {
-                tracing::trace!("rx {}", std::str::from_utf8(src).unwrap());
                 src.advance(sd.byte_offset());
+                tracing::trace!("rx {}", serde_json::to_string_pretty(&msg).unwrap());
                 Ok(Some(msg))
             }
             Some(Err(e)) => {

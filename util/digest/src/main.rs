@@ -19,7 +19,7 @@ async fn greet(name: String) -> Result<String, ToolError> {
 #[derive(Debug)]
 pub struct Person {
     name: String,
-    age: usize,
+    surname: String,
 }
 
 #[bakkie::tool(title = "insert a person into the db")]
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::debug!("Created default provisions");
 
     provisions.insert_tool(greet()).await;
-    //provisions.insert_tool(insert_into_db()).await;
+    provisions.insert_tool(insert_into_db()).await;
 
     let stdio: StdioTransport = io::join(io::stdin(), io::stdout());
     tracing::debug!("Created stdio transport");

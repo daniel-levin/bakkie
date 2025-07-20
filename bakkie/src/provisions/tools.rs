@@ -57,7 +57,9 @@ pub struct ToolInput {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ToolParticulars {
     pub name: String,
+    #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
     pub description: Option<String>,
     #[serde(rename = "inputSchema")]
     pub input_schema: Schema,

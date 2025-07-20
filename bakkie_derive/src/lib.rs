@@ -174,11 +174,22 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         // Constructor for this tool's static particulars
         #[allow(non_snake_case)]
         #fn_vis fn #particulars_fn() -> bakkie::provisions::tools::ToolParticulars {
+
+            use bakkie::schemars::JsonSchema;
+            use bakkie::schemars::SchemaGenerator;
+            use bakkie::schemars::generate::SchemaSettings;
+
+            let mut set = SchemaSettings::openapi3();
+
+            set.inline_subschemas = true;
+
+            let mut g = SchemaGenerator::new(set);
+
             bakkie::provisions::tools::ToolParticulars {
                 name: #name_expr,
                 title: #title_expr,
                 description: #description_expr,
-                input_schema: bakkie::schemars::schema_for!(#struct_name),
+                input_schema: #struct_name :: json_schema(&mut g),
                 output_schema: None,
             }
         }
