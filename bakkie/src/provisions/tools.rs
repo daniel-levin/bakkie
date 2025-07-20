@@ -1,5 +1,4 @@
 use crate::framing::RequestId;
-use bakkie_schema::V20250618::{Tool as SchemaTool, ToolInputSchema};
 use schemars::Schema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, future::Future, pin::Pin};
@@ -55,23 +54,21 @@ pub struct ToolInput {
     pub params: serde_json::Map<String, serde_json::Value>,
 }
 
-#[derive(Clone,Serialize,Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ToolParticulars {
     pub name: String,
     pub title: Option<String>,
     pub description: Option<String>,
-    #[serde(rename="inputSchema")]
+    #[serde(rename = "inputSchema")]
     pub input_schema: Schema,
-    #[serde(rename="outputSchema")]
+    #[serde(rename = "outputSchema")]
+    #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
     pub output_schema: Option<Schema>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SchemaTools {
     pub tools: Vec<ToolParticulars>,
-}
-
-impl ToolParticulars {
 }
 
 pub struct Tool {
@@ -110,7 +107,7 @@ impl Tools {
                 .tools
                 .values()
                 .map(|tool| tool.particulars.clone())
-                .collect()
+                .collect(),
         })
     }
 

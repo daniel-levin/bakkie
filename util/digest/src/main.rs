@@ -22,7 +22,7 @@ pub struct Person {
     age: usize,
 }
 
-#[bakkie::tool(title="insert a person into the db")]
+#[bakkie::tool(title = "insert a person into the db")]
 async fn insert_into_db(person: Person) -> Result<(), ToolError> {
     tracing::debug!("{person:#?} inserted into database");
     Ok(())
