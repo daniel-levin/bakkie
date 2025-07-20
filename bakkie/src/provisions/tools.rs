@@ -24,10 +24,21 @@ impl<T: crate::Structured + Send> IntoToolOutput for T {
     fn into_tool_output(&self) -> ToolOutput {
         let mut structured_content = serde_json::Map::default();
 
+        let as_json = self.as_json_value();
+
+        let text = serde_json::to_string(&as_json).unwrap();
+
         structured_content.insert("result".to_owned(), self.as_json_value());
 
         ToolOutput(bakkie_schema::V20250618::CallToolResult {
-            content: vec![],
+            content: vec![bakkie_schema::V20250618::ContentBlock::TextContent(
+                bakkie_schema::V20250618::TextContent {
+                    annotations: None,
+                    meta: serde_json::Map::default(),
+                    text,
+                    type_: "".into(),
+                },
+            )],
             is_error: None,
             meta: serde_json::Map::default(),
             structured_content,
