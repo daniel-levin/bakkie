@@ -49,7 +49,6 @@ static INITIALIZED: &str = r#"
 "#;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore]
 async fn call_tool() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
     let (tx, mut rx) = mpsc::unbounded_channel();

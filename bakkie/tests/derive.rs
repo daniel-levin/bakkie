@@ -98,7 +98,6 @@ async fn test_tool_func(param: String) -> Result<String, ToolError> {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_naming_convention() {
     // Now test_tool_func() returns a Tool struct
     let tool = test_tool_func();
@@ -117,7 +116,6 @@ async fn greet(name: String) -> Result<String, ToolError> {
     Ok(format!("Hello, {name}"))
 }
 
-#[ignore]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn call_derived_tool() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
