@@ -55,43 +55,23 @@ pub struct ToolInput {
     pub params: serde_json::Map<String, serde_json::Value>,
 }
 
-#[derive(Debug)]
+#[derive(Clone,Serialize,Deserialize, Debug)]
 pub struct ToolParticulars {
     pub name: String,
     pub title: Option<String>,
     pub description: Option<String>,
+    #[serde(rename="inputSchema")]
     pub input_schema: Schema,
+    #[serde(rename="outputSchema")]
     pub output_schema: Option<Schema>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SchemaTools {
-    pub tools: Vec<SchemaTool>,
+    pub tools: Vec<ToolParticulars>,
 }
 
 impl ToolParticulars {
-    pub fn to_schema_tool(&self) -> Result<SchemaTool, serde_json::Error> {
-        let input_schema: ToolInputSchema =
-            serde_json::from_value(serde_json::to_value(&self.input_schema)?)?;
-
-        let output_schema = if let Some(ref output_schema) = self.output_schema {
-            Some(serde_json::from_value(serde_json::to_value(
-                output_schema,
-            )?)?)
-        } else {
-            None
-        };
-
-        Ok(SchemaTool {
-            annotations: None,
-            description: self.description.clone(),
-            input_schema,
-            meta: Default::default(),
-            name: self.name.clone(),
-            output_schema,
-            title: self.title.clone(),
-        })
-    }
 }
 
 pub struct Tool {
@@ -129,100 +109,12 @@ impl Tools {
             tools: self
                 .tools
                 .values()
-                .map(|tool| tool.particulars.to_schema_tool())
-                .collect::<Result<Vec<_>, _>>()?,
+                .map(|tool| tool.particulars.clone())
+                .collect()
         })
     }
 
     pub fn get(&self, name: &str) -> Option<&Tool> {
         self.tools.get(name)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(dead_code)]
-    use super::*;
-    use schemars::{JsonSchema, schema_for};
-    use serde::Deserialize;
-
-    #[derive(JsonSchema, Deserialize)]
-    #[allow(dead_code)]
-    struct TestInput {
-        name: String,
-        age: u32,
-    }
-
-    #[derive(JsonSchema, Deserialize)]
-    #[allow(dead_code)]
-    struct TestOutput {
-        result: String,
-    }
-
-    #[test]
-    fn test_to_schema_tool_basic() {
-        let input_schema = schema_for!(TestInput);
-        let tool_particulars = ToolParticulars {
-            name: "test_tool".to_string(),
-            title: Some("Test Tool".to_string()),
-            description: Some("A test tool".to_string()),
-            input_schema,
-            output_schema: None,
-        };
-        let schema_tool = tool_particulars.to_schema_tool().unwrap();
-
-        assert_eq!(schema_tool.name, "test_tool");
-        assert_eq!(schema_tool.title, Some("Test Tool".to_string()));
-        assert_eq!(schema_tool.description, Some("A test tool".to_string()));
-        assert_eq!(schema_tool.input_schema.type_, "object");
-        assert!(schema_tool.output_schema.is_none());
-        assert!(schema_tool.annotations.is_none());
-    }
-
-    #[test]
-    fn test_to_schema_tool_with_output_schema() {
-        let input_schema = schema_for!(TestInput);
-        let output_schema = schema_for!(TestOutput);
-        let tool_particulars = ToolParticulars {
-            name: "test_tool_with_output".to_string(),
-            title: None,
-            description: None,
-            input_schema,
-            output_schema: Some(output_schema),
-        };
-        let schema_tool = tool_particulars.to_schema_tool().unwrap();
-
-        assert_eq!(schema_tool.name, "test_tool_with_output");
-        assert!(schema_tool.title.is_none());
-        assert!(schema_tool.description.is_none());
-        assert_eq!(schema_tool.input_schema.type_, "object");
-        assert!(schema_tool.output_schema.is_some());
-        assert_eq!(schema_tool.output_schema.unwrap().type_, "object");
-    }
-
-    #[test]
-    fn test_to_schema_tool_minimal() {
-        let input_schema = Schema::from(
-            serde_json::json!({
-                "type": "string"
-            })
-            .as_object()
-            .unwrap()
-            .clone(),
-        );
-        let tool_particulars = ToolParticulars {
-            name: "minimal_tool".to_string(),
-            title: None,
-            description: None,
-            input_schema,
-            output_schema: None,
-        };
-        let schema_tool = tool_particulars.to_schema_tool().unwrap();
-
-        assert_eq!(schema_tool.name, "minimal_tool");
-        assert!(schema_tool.title.is_none());
-        assert!(schema_tool.description.is_none());
-        assert!(schema_tool.annotations.is_none());
-        assert!(schema_tool.output_schema.is_none());
     }
 }

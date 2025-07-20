@@ -60,7 +60,7 @@ impl Encoder<Frame> for McpFraming {
     type Error = CodecError;
 
     fn encode(&mut self, item: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        tracing::trace!("tx {item:#?}");
+        tracing::trace!("tx {:#?}", serde_json::to_string_pretty(&item));
         dst.extend_from_slice(&serde_json::to_vec(&item)?);
         dst.extend_from_slice(b"\n");
         Ok(())
