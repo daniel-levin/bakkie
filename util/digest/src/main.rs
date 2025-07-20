@@ -36,12 +36,14 @@ async fn insert_into_db(person: Person) -> Result<(), ToolError> {
     Ok(())
 }
 
-#[bakkie::tool(title = "Record interaction", description = "record an interaction between characters in the play")]
+#[bakkie::tool(
+    title = "Record interaction",
+    description = "record an interaction between characters in the play"
+)]
 async fn record_interaction(speaker: Person, listener: Person) -> Result<(), ToolError> {
     tracing::debug!("{speaker:#?} talking to {listener:#?} inserted into database");
     Ok(())
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
