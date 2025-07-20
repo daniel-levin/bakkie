@@ -175,9 +175,9 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         #[allow(non_snake_case)]
         #fn_vis fn #particulars_fn() -> bakkie::provisions::tools::ToolParticulars {
 
-            use bakkie::schemars::JsonSchema;
-            use bakkie::schemars::SchemaGenerator;
-            use bakkie::schemars::generate::SchemaSettings;
+            use ::bakkie::schemars::JsonSchema;
+            use ::bakkie::schemars::SchemaGenerator;
+            use ::bakkie::schemars::generate::SchemaSettings;
 
             let mut set = SchemaSettings::openapi3();
 

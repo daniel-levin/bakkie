@@ -19,7 +19,7 @@ async fn greet(name: String) -> Result<String, ToolError> {
 #[derive(Debug)]
 pub struct Person {
     name: String,
-    surname: String,
+    origin: Option<String>,
 }
 
 #[bakkie::tool(title = "insert a person into the db")]
