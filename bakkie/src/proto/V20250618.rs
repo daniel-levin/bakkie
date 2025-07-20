@@ -1,5 +1,5 @@
 use crate::{
-    framing::{Frame, McpFraming, Msg, Notification, Request, RequestId, Response, Transport},
+    framing::{Frame, McpFraming, Msg, Request, RequestId, Response, Transport},
     proto::CodecError,
     provisions::{Provisions, tools::ToolInput},
 };
@@ -161,7 +161,10 @@ impl<T: Transport> InitPhase<T> {
         };
 
         let Frame::Single(Msg::Request(Request {
-            method, params, id, ..
+            method,
+            params: Some(params),
+            id: Some(id),
+            ..
         })) = rcv?
         else {
             return Err(InitPhaseError::SingleRpcExpected);
@@ -185,7 +188,11 @@ impl<T: Transport> InitPhase<T> {
 
         while let Some(Ok(Frame::Single(could_be_init))) = self.stream.next().await {
             match could_be_init {
-                Msg::Request(Request { id, method, .. }) => {
+                Msg::Request(Request {
+                    id: Some(id),
+                    method,
+                    ..
+                }) => {
                     if method == "ping" {
                         let pong = Response {
                             jsonrpc: monostate::MustBe!("2.0"),
@@ -198,7 +205,9 @@ impl<T: Transport> InitPhase<T> {
                         return Err(InitPhaseError::ReceivedNonPing);
                     }
                 }
-                Msg::Notification(Notification { method, .. }) => {
+                Msg::Request(Request {
+                    id: None, method, ..
+                }) => {
                     if method == "notifications/initialized" {
                         break;
                     }
@@ -246,7 +255,10 @@ impl<T: Transport> OpPhase<T> {
 }
 
 #[derive(Debug, Error)]
-pub enum OutboxError {}
+pub enum OutboxError {
+    #[error(transparent)]
+    Codec(#[from] CodecError),
+}
 
 #[derive(Debug)]
 struct Outbox<T: Transport> {
@@ -257,7 +269,7 @@ struct Outbox<T: Transport> {
 impl<T: Transport> Outbox<T> {
     async fn run_to_completion(mut self) -> Result<(), OutboxError> {
         while let Some(msg) = self.queue.recv().await {
-            let _ = self.sink.send(msg).await;
+            let _ = self.sink.send(msg).await?;
         }
 
         Ok(())
@@ -267,7 +279,10 @@ impl<T: Transport> Outbox<T> {
 async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
         Msg::Request(Request {
-            id, method, params, ..
+            id: Some(id),
+            method,
+            params: None,
+            ..
         }) => match method.as_str() {
             "tools/list" => {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
@@ -276,14 +291,22 @@ async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSen
                     result: serde_json::to_value(provisions.schema_tools().await.unwrap()).unwrap(),
                 })));
             }
+            _ => {}
+        },
+        Msg::Request(Request {
+            id: Some(id),
+            method,
+            params: Some(params),
+            ..
+        }) => match method.as_str() {
             "tools/call" => {
                 tokio::task::spawn(Box::pin(call_tool(id, params, provisions, tx)));
             }
             _ => {}
         },
         Msg::Error(_) => {}
-        Msg::Notification(_) => {}
         Msg::Response(_) => {}
+        _ => {}
     }
 }
 

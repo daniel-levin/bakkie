@@ -40,6 +40,7 @@ impl Decoder for McpFraming {
 
         match sd.next() {
             Some(Ok(msg)) => {
+                tracing::trace!("{:#?}", std::str::from_utf8(src));
                 src.advance(sd.byte_offset());
                 Ok(Some(msg))
             }
@@ -93,25 +94,15 @@ pub enum RequestId {
 #[serde(untagged)]
 pub enum Msg {
     Request(Request),
-    Notification(Notification),
     Response(Response),
     Error(Error),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Request {
+    pub id: Option<RequestId>,
     pub jsonrpc: monostate::MustBe!("2.0"),
     pub method: String,
-    pub params: Value,
-    pub id: RequestId,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Notification {
-    pub jsonrpc: monostate::MustBe!("2.0"),
-    pub method: String,
-
-    #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
     pub params: Option<Value>,
 }
 

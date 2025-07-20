@@ -17,9 +17,7 @@ impl Provisions {
         tools.insert_tool(tool.name().to_owned(), tool);
     }
 
-    pub async fn schema_tools(
-        &self,
-    ) -> Result<Vec<bakkie_schema::V20250618::Tool>, serde_json::Error> {
+    pub async fn schema_tools(&self) -> Result<tools::SchemaTools, serde_json::Error> {
         let tools = self.tools.read().await;
         tools.schema_tools()
     }

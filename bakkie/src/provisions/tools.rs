@@ -36,7 +36,7 @@ impl<T: crate::Structured + Send> IntoToolOutput for T {
                     annotations: None,
                     meta: serde_json::Map::default(),
                     text,
-                    type_: "".into(),
+                    type_: "text".into(),
                 },
             )],
             is_error: None,
@@ -62,6 +62,11 @@ pub struct ToolParticulars {
     pub description: Option<String>,
     pub input_schema: Schema,
     pub output_schema: Option<Schema>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SchemaTools {
+    tools: Vec<SchemaTool>,
 }
 
 impl ToolParticulars {
@@ -119,11 +124,14 @@ impl Tools {
         self.tools.insert(name, tool);
     }
 
-    pub fn schema_tools(&self) -> Result<Vec<SchemaTool>, serde_json::Error> {
-        self.tools
-            .values()
-            .map(|tool| tool.particulars.to_schema_tool())
-            .collect()
+    pub fn schema_tools(&self) -> Result<SchemaTools, serde_json::Error> {
+        Ok(SchemaTools {
+            tools: self
+                .tools
+                .values()
+                .map(|tool| tool.particulars.to_schema_tool())
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 
     pub fn get(&self, name: &str) -> Option<&Tool> {
