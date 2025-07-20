@@ -1,7 +1,7 @@
 use bakkie::{
     framing::{Frame, Msg, Request, RequestId, Response, Transport},
     proto::V20250618::{InboxError, McpServer, McpServerError},
-    provisions::Provisions,
+    provisions::{Provisions, tools::SchemaTools},
 };
 use futures::{SinkExt, stream::StreamExt};
 use schemars::JsonSchema;
@@ -263,7 +263,6 @@ async fn disallows_non_pings_before_inited() -> anyhow::Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore]
 async fn request_tools() -> anyhow::Result<()> {
     let (mut client, server) = tokio::io::duplex(64);
 
@@ -390,7 +389,10 @@ async fn request_tools() -> anyhow::Result<()> {
     assert_eq!(response.jsonrpc, monostate::MustBe!("2.0"));
     assert_eq!(response.id, RequestId::Integer(2));
 
-    let tools_list: Vec<bakkie_schema::V20250618::Tool> = serde_json::from_value(response.result)?;
+    let st: SchemaTools = serde_json::from_value(response.result)?;
+
+    let tools_list = st.tools;
+
     assert_eq!(tools_list.len(), 4);
 
     // Sort tools by name for consistent assertions

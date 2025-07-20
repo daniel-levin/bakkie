@@ -66,7 +66,7 @@ pub struct ToolParticulars {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SchemaTools {
-    tools: Vec<SchemaTool>,
+    pub tools: Vec<SchemaTool>,
 }
 
 impl ToolParticulars {

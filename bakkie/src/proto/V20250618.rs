@@ -281,9 +281,12 @@ async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSen
         Msg::Request(Request {
             id: Some(id),
             method,
-            params: None,
+            params: Some(params),
             ..
         }) => match method.as_str() {
+            "tools/call" => {
+                tokio::task::spawn(Box::pin(call_tool(id, params, provisions, tx)));
+            }
             "tools/list" => {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
                     jsonrpc: monostate::MustBe!("2.0"),
@@ -291,17 +294,7 @@ async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSen
                     result: serde_json::to_value(provisions.schema_tools().await.unwrap()).unwrap(),
                 })));
             }
-            _ => {}
-        },
-        Msg::Request(Request {
-            id: Some(id),
-            method,
-            params: Some(params),
-            ..
-        }) => match method.as_str() {
-            "tools/call" => {
-                tokio::task::spawn(Box::pin(call_tool(id, params, provisions, tx)));
-            }
+
             _ => {}
         },
         Msg::Error(_) => {}
