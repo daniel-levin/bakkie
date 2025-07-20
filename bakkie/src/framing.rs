@@ -40,7 +40,7 @@ impl Decoder for McpFraming {
 
         match sd.next() {
             Some(Ok(msg)) => {
-                tracing::trace!("{:#?}", std::str::from_utf8(src));
+                tracing::trace!("rx {}", std::str::from_utf8(src).unwrap());
                 src.advance(sd.byte_offset());
                 Ok(Some(msg))
             }
@@ -60,6 +60,7 @@ impl Encoder<Frame> for McpFraming {
     type Error = CodecError;
 
     fn encode(&mut self, item: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        tracing::trace!("tx {item:#?}");
         dst.extend_from_slice(&serde_json::to_vec(&item)?);
         dst.extend_from_slice(b"\n");
         Ok(())

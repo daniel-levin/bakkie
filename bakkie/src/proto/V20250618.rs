@@ -281,11 +281,11 @@ async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSen
         Msg::Request(Request {
             id: Some(id),
             method,
-            params: Some(params),
+            params,
             ..
         }) => match method.as_str() {
             "tools/call" => {
-                tokio::task::spawn(Box::pin(call_tool(id, params, provisions, tx)));
+                tokio::task::spawn(Box::pin(call_tool(id, params.unwrap(), provisions, tx)));
             }
             "tools/list" => {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
