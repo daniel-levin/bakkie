@@ -94,13 +94,13 @@ pub enum RequestId {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Msg {
-    Request(Request),
+    Request(RequestOrNotification),
     Response(Response),
     Error(Error),
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Request {
+pub struct RequestOrNotification {
     pub id: Option<RequestId>,
     pub jsonrpc: monostate::MustBe!("2.0"),
     pub method: String,

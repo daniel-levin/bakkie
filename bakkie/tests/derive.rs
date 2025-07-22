@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 
 use bakkie::{
-    framing::{Frame, Msg, Request, RequestId, Transport},
+    framing::{Frame, Msg, RequestId, RequestOrNotification, Transport},
     proto::V20250618::McpServer,
     provisions::{
         Provisions,
@@ -140,7 +140,7 @@ async fn call_derived_tool() -> anyhow::Result<()> {
         .send(serde_json::from_str(INITIALIZED).unwrap())
         .await;
 
-    let ask_for_tools: Request = serde_json::from_str(
+    let ask_for_tools: RequestOrNotification = serde_json::from_str(
         r#"
     {
         "jsonrpc": "2.0",
@@ -160,7 +160,7 @@ async fn call_derived_tool() -> anyhow::Result<()> {
     let _tools_response = framed.next().await;
 
     // Now call the greet tool
-    let call_tool_request: Request = serde_json::from_str(
+    let call_tool_request: RequestOrNotification = serde_json::from_str(
         r#"
     {
         "jsonrpc": "2.0",

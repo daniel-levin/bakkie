@@ -1,5 +1,5 @@
 use crate::{
-    framing::{Frame, McpFraming, Msg, Request, RequestId, Response, Transport},
+    framing::{Frame, McpFraming, Msg, RequestId, RequestOrNotification, Response, Transport},
     proto::CodecError,
     provisions::{Provisions, tools::ToolInput},
 };
@@ -160,7 +160,7 @@ impl<T: Transport> InitPhase<T> {
             return Err(InitPhaseError::PrematureStreamClosure);
         };
 
-        let Frame::Single(Msg::Request(Request {
+        let Frame::Single(Msg::Request(RequestOrNotification {
             method,
             params: Some(params),
             id: Some(id),
@@ -188,7 +188,7 @@ impl<T: Transport> InitPhase<T> {
 
         while let Some(Ok(Frame::Single(could_be_init))) = self.stream.next().await {
             match could_be_init {
-                Msg::Request(Request {
+                Msg::Request(RequestOrNotification {
                     id: Some(id),
                     method,
                     ..
@@ -205,7 +205,7 @@ impl<T: Transport> InitPhase<T> {
                         return Err(InitPhaseError::ReceivedNonPing);
                     }
                 }
-                Msg::Request(Request {
+                Msg::Request(RequestOrNotification {
                     id: None, method, ..
                 }) => {
                     if method == "notifications/initialized" {
@@ -278,7 +278,7 @@ impl<T: Transport> Outbox<T> {
 
 async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
-        Msg::Request(Request {
+        Msg::Request(RequestOrNotification {
             id: Some(id),
             method,
             params,

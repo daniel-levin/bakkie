@@ -1,5 +1,5 @@
 use bakkie::{
-    framing::{Frame, Msg, Request, RequestId, Response, Transport},
+    framing::{Frame, Msg, RequestId, RequestOrNotification, Response, Transport},
     proto::V20250618::{InboxError, McpServer, McpServerError},
     provisions::{Provisions, tools::SchemaTools},
 };
@@ -183,7 +183,7 @@ async fn allows_pings_before_inited() -> anyhow::Result<()> {
     assert!(server_hello.is_some());
 
     for ping_id in 2..=10 {
-        let ping = Frame::Single(Msg::Request(Request {
+        let ping = Frame::Single(Msg::Request(RequestOrNotification {
             jsonrpc: monostate::MustBe!("2.0"),
             id: Some(RequestId::Integer(ping_id as i64)),
             method: "ping".into(),
@@ -236,7 +236,7 @@ async fn disallows_non_pings_before_inited() -> anyhow::Result<()> {
     let server_hello = framed.next().await;
     assert!(server_hello.is_some());
 
-    let ping = Frame::Single(Msg::Request(Request {
+    let ping = Frame::Single(Msg::Request(RequestOrNotification {
         jsonrpc: monostate::MustBe!("2.0"),
         id: Some(RequestId::Integer(10)),
         method: "something_else".into(),
@@ -358,7 +358,7 @@ async fn request_tools() -> anyhow::Result<()> {
         .send(serde_json::from_str(INITIALIZED).unwrap())
         .await;
 
-    let ask_for_tools: Request = serde_json::from_str(
+    let ask_for_tools: RequestOrNotification = serde_json::from_str(
         r#"
     {
         "jsonrpc": "2.0",
