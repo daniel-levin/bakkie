@@ -39,7 +39,7 @@ where
     }
 
     fn as_json_value(&self) -> serde_json::Value {
-        serde_json::to_value(&self).unwrap()
+        serde_json::to_value(self).unwrap()
     }
 }
 

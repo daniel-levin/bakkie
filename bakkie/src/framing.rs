@@ -100,11 +100,19 @@ pub enum Msg {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct RequestOrNotification {
-    pub id: Option<RequestId>,
-    pub jsonrpc: monostate::MustBe!("2.0"),
-    pub method: String,
-    pub params: Option<Value>,
+#[serde(untagged)]
+pub enum RequestOrNotification {
+    Request {
+        id: RequestId,
+        jsonrpc: monostate::MustBe!("2.0"),
+        method: String,
+        params: Option<Value>,
+    },
+    Notification {
+        jsonrpc: monostate::MustBe!("2.0"),
+        method: String,
+        params: Option<Value>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -127,6 +135,27 @@ mod tests {
     use super::*;
     use futures::stream::StreamExt;
     use tokio::io::AsyncWriteExt;
+
+    #[test]
+    fn identifies_correct_variant() {
+        let Msg::Request(RequestOrNotification::Request { .. }) = serde_json::from_str(
+            r#"
+            {"jsonrpc": "2.0", "method": "greet", "id": 1}
+        "#,
+        )
+        .unwrap() else {
+            panic!("not correct");
+        };
+
+        let Msg::Request(RequestOrNotification::Notification { .. }) = serde_json::from_str(
+            r#"
+            {"jsonrpc": "2.0", "method": "notifications/initialized" }
+        "#,
+        )
+        .unwrap() else {
+            panic!("not correct");
+        };
+    }
 
     #[test]
     fn framing() {

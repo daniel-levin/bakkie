@@ -160,10 +160,10 @@ impl<T: Transport> InitPhase<T> {
             return Err(InitPhaseError::PrematureStreamClosure);
         };
 
-        let Frame::Single(Msg::Request(RequestOrNotification {
+        let Frame::Single(Msg::Request(RequestOrNotification::Request {
             method,
             params: Some(params),
-            id: Some(id),
+            id,
             ..
         })) = rcv?
         else {
@@ -188,11 +188,7 @@ impl<T: Transport> InitPhase<T> {
 
         while let Some(Ok(Frame::Single(could_be_init))) = self.stream.next().await {
             match could_be_init {
-                Msg::Request(RequestOrNotification {
-                    id: Some(id),
-                    method,
-                    ..
-                }) => {
+                Msg::Request(RequestOrNotification::Request { id, method, .. }) => {
                     if method == "ping" {
                         let pong = Response {
                             jsonrpc: monostate::MustBe!("2.0"),
@@ -205,9 +201,7 @@ impl<T: Transport> InitPhase<T> {
                         return Err(InitPhaseError::ReceivedNonPing);
                     }
                 }
-                Msg::Request(RequestOrNotification {
-                    id: None, method, ..
-                }) => {
+                Msg::Request(RequestOrNotification::Notification { method, .. }) => {
                     if method == "notifications/initialized" {
                         break;
                     }
@@ -269,7 +263,7 @@ struct Outbox<T: Transport> {
 impl<T: Transport> Outbox<T> {
     async fn run_to_completion(mut self) -> Result<(), OutboxError> {
         while let Some(msg) = self.queue.recv().await {
-            let _ = self.sink.send(msg).await?;
+            self.sink.send(msg).await?;
         }
 
         Ok(())
@@ -278,11 +272,8 @@ impl<T: Transport> Outbox<T> {
 
 async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
     match msg {
-        Msg::Request(RequestOrNotification {
-            id: Some(id),
-            method,
-            params,
-            ..
+        Msg::Request(RequestOrNotification::Request {
+            id, method, params, ..
         }) => match method.as_str() {
             "tools/call" => {
                 tokio::task::spawn(Box::pin(call_tool(id, params.unwrap(), provisions, tx)));

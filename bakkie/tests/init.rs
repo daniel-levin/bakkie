@@ -183,9 +183,9 @@ async fn allows_pings_before_inited() -> anyhow::Result<()> {
     assert!(server_hello.is_some());
 
     for ping_id in 2..=10 {
-        let ping = Frame::Single(Msg::Request(RequestOrNotification {
+        let ping = Frame::Single(Msg::Request(RequestOrNotification::Request {
             jsonrpc: monostate::MustBe!("2.0"),
-            id: Some(RequestId::Integer(ping_id as i64)),
+            id: RequestId::Integer(ping_id as i64),
             method: "ping".into(),
             params: None,
         }));
@@ -236,9 +236,9 @@ async fn disallows_non_pings_before_inited() -> anyhow::Result<()> {
     let server_hello = framed.next().await;
     assert!(server_hello.is_some());
 
-    let ping = Frame::Single(Msg::Request(RequestOrNotification {
+    let ping = Frame::Single(Msg::Request(RequestOrNotification::Request {
         jsonrpc: monostate::MustBe!("2.0"),
-        id: Some(RequestId::Integer(10)),
+        id: RequestId::Integer(10),
         method: "something_else".into(),
         params: None,
     }));
