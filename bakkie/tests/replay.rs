@@ -1,6 +1,5 @@
 use bakkie::{framing::Transport, proto::V20250618::McpServer, provisions::Provisions};
 use futures::{SinkExt, stream::StreamExt};
-use tokio::io::AsyncWriteExt;
 
 macro_rules! slurp {
     ($file:literal) => {
@@ -26,7 +25,7 @@ async fn replay_claude_code_interaction() -> anyhow::Result<()> {
 
     framed.send(slurp!("../testdata/claude_hello.json")).await?;
 
-    let server_hello = framed.next().await.unwrap()?;
+    let _server_hello = framed.next().await.unwrap()?;
 
     framed
         .send(slurp!("../testdata/claude_notify.json"))
@@ -36,7 +35,7 @@ async fn replay_claude_code_interaction() -> anyhow::Result<()> {
         .send(slurp!("../testdata/claude_ask_for_tools.json"))
         .await?;
 
-    let list_of_tools = framed.next().await.unwrap()?;
+    let _list_of_tools = framed.next().await.unwrap()?;
 
     drop(framed);
     let _ = exit.await?;

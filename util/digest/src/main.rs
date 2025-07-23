@@ -4,7 +4,6 @@ use bakkie::{
     provisions::{Provisions, tools::ToolError},
 };
 use tokio::io;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[bakkie::tool(description = "greet people", title = "greeting tool")]
 async fn greet(name: String) -> Result<String, ToolError> {
