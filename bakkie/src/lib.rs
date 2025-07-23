@@ -62,6 +62,9 @@ enum BakkieErrorInternal {
     #[error(transparent)]
     CodecError(#[from] framing::CodecError),
 }
+pub fn stdio() -> crate::framing::StdioTransport {
+    tokio::io::join(tokio::io::stdin(), tokio::io::stdout())
+}
 
 #[macro_export]
 macro_rules! dnp {

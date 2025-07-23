@@ -1,9 +1,7 @@
 use bakkie::{
-    framing::StdioTransport,
     proto::V20250618::McpServer,
     provisions::{Provisions, tools::ToolError},
 };
-use tokio::io;
 
 #[bakkie::tool(description = "greet people", title = "greeting tool")]
 async fn greet(name: String) -> Result<String, ToolError> {
@@ -48,20 +46,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     bakkie::dnp!();
 
     let provisions = Provisions::default();
-    tracing::debug!("Created default provisions");
 
     provisions.insert_tool(greet()).await;
     provisions.insert_tool(insert_into_db()).await;
     provisions.insert_tool(record_interaction()).await;
 
-    let stdio: StdioTransport = io::join(io::stdin(), io::stdout());
-    tracing::debug!("Created stdio transport");
-
-    let server = McpServer::new_with_provisions(stdio, provisions);
-    tracing::debug!("Created MCP server");
-
-    tracing::info!("Starting server run loop");
+    let server = McpServer::new_with_provisions(bakkie::stdio(), provisions);
     server.run().await?;
-    tracing::info!("Server run loop completed");
     Ok(())
 }
