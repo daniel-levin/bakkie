@@ -3,7 +3,6 @@ use bakkie::{
     proto::V20250618::McpServer,
     provisions::{Provisions, tools::ToolError},
 };
-use std::fs::OpenOptions;
 use tokio::io;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -47,27 +46,7 @@ async fn record_interaction(speaker: Person, listener: Person) -> Result<(), Too
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Setup tracing to write to named pipe
-    let pipe_path = "/tmp/digest_trace";
-    let pipe_file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(pipe_path)?;
-
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_writer(pipe_file)
-                .with_ansi(false),
-        )
-        .with(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::TRACE.into()),
-        )
-        .init();
-
-    tracing::info!("Digest starting up, tracing to {}", pipe_path);
+    bakkie::dnp!();
 
     let provisions = Provisions::default();
     tracing::debug!("Created default provisions");

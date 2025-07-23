@@ -62,3 +62,29 @@ enum BakkieErrorInternal {
     #[error(transparent)]
     CodecError(#[from] framing::CodecError),
 }
+
+#[macro_export]
+macro_rules! dnp {
+    () => {
+        use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+        // Setup tracing to write to named pipe
+        let pipe_path = "/tmp/digest_trace";
+        let pipe_file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(pipe_path)?;
+
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_writer(pipe_file)
+                    .with_ansi(false),
+            )
+            .with(
+                tracing_subscriber::EnvFilter::from_default_env()
+                    .add_directive(tracing::Level::TRACE.into()),
+            )
+            .init();
+    };
+}
