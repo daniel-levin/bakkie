@@ -106,6 +106,30 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         .into();
     }
 
+    let mut doc_strings = vec![];
+
+    for att in &input.attrs {
+        if let syn::Attribute {
+            meta:
+                syn::Meta::NameValue(syn::MetaNameValue {
+                    path: syn::Path { segments, .. },
+                    value:
+                        syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(s),
+                            ..
+                        }),
+                    ..
+                }),
+            ..
+        } = att
+        {
+            let syn::PathSegment { ident, .. } = &segments[0];
+            if ident == "doc" {
+                doc_strings.push(s.value());
+            }
+        }
+    }
+
     let fn_name = &input.sig.ident;
     let fn_vis = &input.vis;
     let fn_attrs = &input.attrs;
@@ -150,11 +174,16 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     } else {
         quote! { None }
     };
+
     let description_expr = if let Some(lit) = description_lit {
         quote! { Some(#lit.to_string()) }
+    } else if !doc_strings.is_empty() {
+        let doc_string_description = doc_strings.join("\n");
+        quote! { Some(#doc_string_description.to_string()) }
     } else {
         quote! { None }
     };
+
     let output = quote! {
         #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
         #[serde(crate = "bakkie::serde")]
