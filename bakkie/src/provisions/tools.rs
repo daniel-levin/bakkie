@@ -30,26 +30,14 @@ pub trait AsToolOutput: Send {
     fn as_tool_output(&self) -> ToolOutput;
 }
 
-impl AsToolOutput for () {
-    fn as_tool_output(&self) -> ToolOutput {
-        ToolOutput::default()
-    }
-}
-
-impl AsToolOutput for usize {
-    fn as_tool_output(&self) -> ToolOutput {
-        self.to_string().as_tool_output()
-    }
-}
-
-impl AsToolOutput for String {
+impl<T: for<'a> Deserialize<'a> + Send> AsToolOutput for T {
     fn as_tool_output(&self) -> ToolOutput {
         ToolOutput(bakkie_schema::V20250618::CallToolResult {
             content: vec![bakkie_schema::V20250618::ContentBlock::TextContent(
                 bakkie_schema::V20250618::TextContent {
                     annotations: None,
                     meta: serde_json::Map::default(),
-                    text: self.clone(),
+                    text: "".into(),
                     type_: "text".into(),
                 },
             )],
