@@ -184,6 +184,12 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         quote! { None }
     };
 
+    let output_schema = if let syn::ReturnType::Type(_, rt) = &fn_output {
+        quote! { Some( <#rt as InnerSchema> :: inner_schema(&mut g) ) }
+    } else {
+        quote! { None }
+    };
+
     let output = quote! {
         #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
         #[serde(crate = "bakkie::serde")]
@@ -207,6 +213,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
             use ::bakkie::schemars::JsonSchema;
             use ::bakkie::schemars::SchemaGenerator;
             use ::bakkie::schemars::generate::SchemaSettings;
+            use ::bakkie::InnerSchema;
 
             let mut set = SchemaSettings::openapi3();
 
@@ -219,7 +226,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                 title: #title_expr,
                 description: #description_expr,
                 input_schema: #struct_name :: json_schema(&mut g),
-                output_schema: None,
+                output_schema: #output_schema,
             }
         }
 

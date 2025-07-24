@@ -14,7 +14,6 @@ fn test_only_name() {
     assert!(p.description.is_none());
     assert!(p.title.is_none());
     assert_eq!(p.name, "only_name");
-    assert!(p.output_schema.is_none());
 }
 
 /// I want her to know it was me.
@@ -32,7 +31,6 @@ fn test_name_with_annotations() {
     assert_eq!(p.description.unwrap(), " I want her to know it was me.");
     assert!(p.title.is_none());
     assert_eq!(p.name, "name_with_annotations");
-    assert!(p.output_schema.is_none());
 }
 
 /// The docstring should lose.
@@ -50,7 +48,6 @@ fn test_docstring_loses() {
     assert_eq!(p.description.unwrap(), "the punctuated list should win");
     assert!(p.title.is_none());
     assert_eq!(p.name, "docstring_loses");
-    assert!(p.output_schema.is_none());
 }
 
 /// The docstring should lose.
@@ -68,5 +65,4 @@ fn test_docstring_loses2() {
     assert_eq!(p.description.unwrap(), "the punctuated list should win");
     assert_eq!(p.title.unwrap(), "foo");
     assert_eq!(p.name, "docstring_loses2");
-    assert!(p.output_schema.is_none());
 }

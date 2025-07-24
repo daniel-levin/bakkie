@@ -28,11 +28,22 @@ impl<T: Into<BakkieErrorInternal>> From<T> for BakkieError {
 
 pub type Result<T, E = BakkieError> = std::result::Result<T, E>;
 
+pub trait InnerSchema {
+    fn inner_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema;
+}
+
+impl<T: schemars::JsonSchema, E> InnerSchema for Result<T, E> {
+    fn inner_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        T::json_schema(g)
+    }
+}
+
 #[derive(Debug, Error)]
 enum BakkieErrorInternal {
     #[error(transparent)]
     CodecError(#[from] framing::CodecError),
 }
+
 pub fn stdio() -> crate::framing::StdioTransport {
     tokio::io::join(tokio::io::stdin(), tokio::io::stdout())
 }
