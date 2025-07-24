@@ -13,7 +13,7 @@ pub enum ToolError {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct ToolOutput(pub bakkie_schema::V20250618::CallToolResult);
+pub struct ToolOutput(bakkie_schema::V20250618::CallToolResult);
 
 impl Default for ToolOutput {
     fn default() -> Self {
