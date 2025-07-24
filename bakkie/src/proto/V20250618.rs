@@ -321,8 +321,7 @@ async fn call_tool(
         match prepped_fut.await {
             Ok(tool_output) => {
                 let to = tool_output.as_tool_output();
-                let wire_fmt =
-                    move || Result::<_, serde_json::Error>::Ok(serde_json::to_value(to?)?);
+                let wire_fmt = move || serde_json::to_value(to?);
 
                 match wire_fmt() {
                     Ok(wire) => {

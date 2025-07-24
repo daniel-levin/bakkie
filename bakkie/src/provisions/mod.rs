@@ -12,7 +12,8 @@ pub struct Provisions {
 }
 
 impl Provisions {
-    pub async fn insert_tool(&self, tool: Tool) {
+    pub async fn insert_tool<F: FnOnce() -> Tool>(&self, tf: F) {
+        let tool = tf();
         let mut tools = self.tools.write().await;
         tools.insert_tool(tool.name().to_owned(), tool);
     }

@@ -64,7 +64,7 @@ async fn call_tool() -> anyhow::Result<()> {
             output_schema: Some(schemars::schema_for!(Vec<String>)),
         };
         let tx_for_tool = tx.clone();
-        let tool_4 = bakkie::provisions::tools::Tool {
+        let tool_4 = || bakkie::provisions::tools::Tool {
             particulars: tool_particulars_4,
             tool_fn: Box::new(move |tool_input| {
                 let tx_for_future = tx_for_tool.clone();

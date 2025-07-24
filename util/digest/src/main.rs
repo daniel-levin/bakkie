@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     //provisions.insert_tool(greet()).await;
     //provisions.insert_tool(insert_into_db()).await;
-    provisions.insert_tool(count_letters()).await;
+    provisions.insert_tool(count_letters).await;
 
     let server = McpServer::new_with_provisions(bakkie::stdio(), provisions);
     server.run().await?;

@@ -37,7 +37,7 @@ pub trait AsToolOutput: Send + Sync + 'static {
 
 impl<T: Serialize + Send + Sync + 'static> AsToolOutput for T {
     fn as_tool_output(&self) -> Result<ToolOutput, serde_json::Error> {
-        let structured_content = match serde_json::to_value(&self)? {
+        let structured_content = match serde_json::to_value(self)? {
             serde_json::Value::Object(map) => map,
             v => {
                 let mut sc = serde_json::Map::default();

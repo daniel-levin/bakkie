@@ -122,7 +122,7 @@ async fn call_derived_tool() -> anyhow::Result<()> {
 
     tokio::task::spawn(async move {
         let provisions = Provisions::default();
-        provisions.insert_tool(greet()).await;
+        provisions.insert_tool(greet).await;
 
         let server = McpServer::new_with_provisions(server, provisions);
 

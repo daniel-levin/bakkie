@@ -277,7 +277,7 @@ async fn request_tools() -> anyhow::Result<()> {
             input_schema: schemars::schema_for!(String),
             output_schema: None,
         };
-        let tool = bakkie::provisions::tools::Tool {
+        let tool = || bakkie::provisions::tools::Tool {
             particulars: tool_particulars,
             tool_fn: Box::new(|_| {
                 Box::pin(async {
@@ -296,7 +296,7 @@ async fn request_tools() -> anyhow::Result<()> {
             input_schema: schemars::schema_for!(i32),
             output_schema: Some(schemars::schema_for!(f64)),
         };
-        let tool_2 = bakkie::provisions::tools::Tool {
+        let tool_2 = || bakkie::provisions::tools::Tool {
             particulars: tool_particulars_2,
             tool_fn: Box::new(|_| {
                 Box::pin(async {
@@ -314,7 +314,7 @@ async fn request_tools() -> anyhow::Result<()> {
             input_schema: schemars::schema_for!(bool),
             output_schema: None,
         };
-        let tool_3 = bakkie::provisions::tools::Tool {
+        let tool_3 = || bakkie::provisions::tools::Tool {
             particulars: tool_particulars_3,
             tool_fn: Box::new(|_| {
                 Box::pin(async {
@@ -332,7 +332,7 @@ async fn request_tools() -> anyhow::Result<()> {
             input_schema: schemars::schema_for!(SearchRequest),
             output_schema: Some(schemars::schema_for!(Vec<String>)),
         };
-        let tool_4 = bakkie::provisions::tools::Tool {
+        let tool_4 = || bakkie::provisions::tools::Tool {
             particulars: tool_particulars_4,
             tool_fn: Box::new(|_| {
                 Box::pin(async {
