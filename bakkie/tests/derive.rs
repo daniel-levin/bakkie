@@ -86,7 +86,7 @@ fn test_macro_generates_struct2() {
 
     let t: ToolFuture = Box::pin(async move {
         match remember_location_impl(args).await {
-            Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
+            Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::AsToolOutput>),
             Err(e) => Err(e),
         }
     });

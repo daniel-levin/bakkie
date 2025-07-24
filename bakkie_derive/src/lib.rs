@@ -8,7 +8,7 @@ pub fn structured(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     input
         .attrs
-        .push(parse_quote!(#[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]));
+        .push(parse_quote!(#[derive(Debug, Clone, bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]));
 
     input
         .attrs
@@ -240,7 +240,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
                         // Call the actual tool function
                         match #impl_fn_name(args).await {
-                            Ok(result) => Ok(Box::new(result) as Box<dyn bakkie::provisions::tools::IntoToolOutput>),
+                            Ok(result) => Ok(Box::new(result) as Box<dyn bakkie::provisions::tools::AsToolOutput>),
                             Err(e) => Err(e),
                         }
                     })

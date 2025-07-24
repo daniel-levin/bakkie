@@ -12,7 +12,6 @@ async fn greet(name: String) -> Result<String, ToolError> {
 }
 
 #[bakkie::structured]
-#[derive(Debug)]
 enum Gender {
     Male,
     Female,
@@ -20,7 +19,6 @@ enum Gender {
 }
 
 #[bakkie::structured]
-#[derive(Debug)]
 pub struct Person {
     name: String,
     guessed_gender: Gender,

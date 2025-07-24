@@ -15,38 +15,53 @@ pub enum ToolError {
 #[serde(transparent)]
 pub struct ToolOutput(pub bakkie_schema::V20250618::CallToolResult);
 
-pub trait IntoToolOutput: Send {
-    fn into_tool_output(&self) -> ToolOutput;
+impl Default for ToolOutput {
+    fn default() -> Self {
+        Self(bakkie_schema::V20250618::CallToolResult {
+            content: vec![],
+            is_error: None,
+            meta: serde_json::Map::default(),
+            structured_content: serde_json::Map::default(),
+        })
+    }
 }
 
-impl<T: crate::Structured + Send> IntoToolOutput for T {
-    fn into_tool_output(&self) -> ToolOutput {
-        let mut structured_content = serde_json::Map::default();
+pub trait AsToolOutput: Send {
+    fn as_tool_output(&self) -> ToolOutput;
+}
 
-        let as_json = self.as_json_value();
+impl AsToolOutput for () {
+    fn as_tool_output(&self) -> ToolOutput {
+        ToolOutput::default()
+    }
+}
 
-        let text = serde_json::to_string(&as_json).unwrap();
+impl AsToolOutput for usize {
+    fn as_tool_output(&self) -> ToolOutput {
+        self.to_string().as_tool_output()
+    }
+}
 
-        structured_content.insert("result".to_owned(), self.as_json_value());
-
+impl AsToolOutput for String {
+    fn as_tool_output(&self) -> ToolOutput {
         ToolOutput(bakkie_schema::V20250618::CallToolResult {
             content: vec![bakkie_schema::V20250618::ContentBlock::TextContent(
                 bakkie_schema::V20250618::TextContent {
                     annotations: None,
                     meta: serde_json::Map::default(),
-                    text,
+                    text: self.clone(),
                     type_: "text".into(),
                 },
             )],
             is_error: None,
             meta: serde_json::Map::default(),
-            structured_content,
+            structured_content: serde_json::Map::default(),
         })
     }
 }
 
 pub type ToolFuture =
-    Pin<Box<dyn Future<Output = Result<Box<dyn IntoToolOutput>, ToolError>> + Send>>;
+    Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, ToolError>> + Send>>;
 
 #[allow(dead_code)]
 pub struct ToolInput {

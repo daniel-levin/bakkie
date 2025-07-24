@@ -319,7 +319,7 @@ async fn call_tool(
     tokio::task::spawn(Box::pin(async move {
         match prepped_fut.await {
             Ok(tool_output) => {
-                let to = tool_output.into_tool_output();
+                let to = tool_output.as_tool_output();
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
                     id,
                     jsonrpc: monostate::MustBe!("2.0"),
