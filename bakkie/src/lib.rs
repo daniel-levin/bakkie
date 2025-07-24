@@ -1,5 +1,3 @@
-use thiserror::Error;
-
 pub use bakkie_derive::{structured, tool};
 
 pub mod framing;
@@ -14,20 +12,6 @@ pub mod serde {
     pub use serde::*;
 }
 
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct BakkieError {
-    err: BakkieErrorInternal,
-}
-
-impl<T: Into<BakkieErrorInternal>> From<T> for BakkieError {
-    fn from(t: T) -> Self {
-        Self { err: t.into() }
-    }
-}
-
-pub type Result<T, E = BakkieError> = std::result::Result<T, E>;
-
 pub trait InnerSchema {
     fn inner_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema;
 }
@@ -36,12 +20,6 @@ impl<T: schemars::JsonSchema, E> InnerSchema for Result<T, E> {
     fn inner_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema {
         T::json_schema(g)
     }
-}
-
-#[derive(Debug, Error)]
-enum BakkieErrorInternal {
-    #[error(transparent)]
-    CodecError(#[from] framing::CodecError),
 }
 
 pub fn stdio() -> crate::framing::StdioTransport {

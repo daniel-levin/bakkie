@@ -1,4 +1,3 @@
-/*
 use bakkie::{
     framing::{Frame, Msg, RequestOrNotification, Transport},
     proto::V20250618::McpServer,
@@ -158,4 +157,3 @@ async fn call_tool() -> anyhow::Result<()> {
 
     Ok(())
 }
-*/
