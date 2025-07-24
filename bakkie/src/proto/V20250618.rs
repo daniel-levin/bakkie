@@ -316,17 +316,32 @@ async fn call_tool(
         .await
         .unwrap();
 
+    // todo: make readable.
     tokio::task::spawn(Box::pin(async move {
         match prepped_fut.await {
             Ok(tool_output) => {
                 let to = tool_output.as_tool_output();
-                let _ = tx.send(Frame::Single(Msg::Response(Response {
-                    id,
-                    jsonrpc: monostate::MustBe!("2.0"),
-                    result: serde_json::to_value(to).unwrap(),
-                })));
+                let wire_fmt =
+                    move || Result::<_, serde_json::Error>::Ok(serde_json::to_value(to?)?);
+
+                match wire_fmt() {
+                    Ok(wire) => {
+                        let Ok(_) = tx.send(Frame::Single(Msg::Response(Response {
+                            id,
+                            jsonrpc: monostate::MustBe!("2.0"),
+                            result: wire,
+                        }))) else {
+                            todo!();
+                        };
+                    }
+                    Err(e) => {
+                        todo!();
+                    }
+                }
             }
-            Err(failure) => {}
+            Err(failure) => {
+                todo!();
+            }
         }
     }));
 }

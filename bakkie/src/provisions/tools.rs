@@ -27,31 +27,34 @@ impl Default for ToolOutput {
 }
 
 pub trait AsToolOutput: Send {
-    fn as_tool_output(&self) -> ToolOutput;
+    fn as_tool_output(&self) -> Result<ToolOutput, serde_json::Error>;
 }
 
-impl<T: for<'a> Deserialize<'a> + Send> AsToolOutput for T {
-    fn as_tool_output(&self) -> ToolOutput {
-        ToolOutput(bakkie_schema::V20250618::CallToolResult {
+impl<T: Serialize + Send> AsToolOutput for T {
+    fn as_tool_output(&self) -> Result<ToolOutput, serde_json::Error> {
+        let value = serde_json::to_value(&self)?;
+
+        let text = serde_json::to_string(&self)?;
+
+        Ok(ToolOutput(bakkie_schema::V20250618::CallToolResult {
             content: vec![bakkie_schema::V20250618::ContentBlock::TextContent(
                 bakkie_schema::V20250618::TextContent {
                     annotations: None,
                     meta: serde_json::Map::default(),
-                    text: "".into(),
+                    text,
                     type_: "text".into(),
                 },
             )],
             is_error: None,
             meta: serde_json::Map::default(),
             structured_content: serde_json::Map::default(),
-        })
+        }))
     }
 }
 
 pub type ToolFuture =
     Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, ToolError>> + Send>>;
 
-#[allow(dead_code)]
 pub struct ToolInput {
     pub request_id: RequestId,
     pub params: serde_json::Map<String, serde_json::Value>,
