@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+anyhow = "1"
 bakkie = "0.1"
 bakkie_schema = "0.1"
 bakkie_derive = "0.1"

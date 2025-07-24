@@ -186,6 +186,7 @@ dependencies = [
 name = "digest"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bakkie",
  "bakkie_derive",
  "bakkie_schema",

@@ -5,10 +5,15 @@ use std::{collections::HashMap, future::Future, pin::Pin};
 
 use thiserror::Error;
 
+pub type Result<T, E = ToolError> = std::result::Result<T, E>;
+
 #[derive(Debug, Error)]
 pub enum ToolError {
-    #[error("Invalid input: {0}")]
-    InvalidInput(String),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
+
+    #[error("error inside tool")]
+    Internal(#[source] Box<dyn std::error::Error>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,13 +31,22 @@ impl Default for ToolOutput {
     }
 }
 
-pub trait AsToolOutput: Send {
+pub trait AsToolOutput: Send + Sync + 'static {
     fn as_tool_output(&self) -> Result<ToolOutput, serde_json::Error>;
 }
 
-impl<T: Serialize + Send> AsToolOutput for T {
+impl<T: Serialize + Send + Sync + 'static> AsToolOutput for T {
     fn as_tool_output(&self) -> Result<ToolOutput, serde_json::Error> {
-        let value = serde_json::to_value(&self)?;
+        let structured_content = match serde_json::to_value(&self)? {
+            serde_json::Value::Object(map) => map,
+            v => {
+                let mut sc = serde_json::Map::default();
+
+                sc.insert("result".into(), v);
+
+                sc
+            }
+        };
 
         let text = serde_json::to_string(&self)?;
 
@@ -47,13 +61,13 @@ impl<T: Serialize + Send> AsToolOutput for T {
             )],
             is_error: None,
             meta: serde_json::Map::default(),
-            structured_content: serde_json::Map::default(),
+            structured_content,
         }))
     }
 }
 
 pub type ToolFuture =
-    Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, Box<dyn std::error::Error>>> + Send>>;
+    Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, ToolError>> + Send>>;
 
 pub struct ToolInput {
     pub request_id: RequestId,

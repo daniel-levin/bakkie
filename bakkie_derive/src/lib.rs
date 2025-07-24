@@ -242,13 +242,13 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                             serde_json::Value::Object(tool_input.params)
                         ) {
                             Ok(args) => args,
-                            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>)?,
+                            Err(e) => Err(ToolError::Json(e))?,
                         };
 
                         // Call the actual tool function
                         match #impl_fn_name(args).await {
                             Ok(result) => Ok(Box::new(result) as Box<dyn bakkie::provisions::tools::AsToolOutput>),
-                            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
+                            Err(e) => Err(ToolError::Internal(Box::new(e))),
                         }
                     })
                 }),

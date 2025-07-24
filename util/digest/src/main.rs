@@ -1,10 +1,13 @@
 use bakkie::{
     proto::V20250618::McpServer,
-    provisions::{Provisions, tools::ToolError},
+    provisions::{
+        Provisions,
+        tools::{Result, ToolError},
+    },
 };
 
 #[bakkie::tool(description = "greet people", title = "greeting tool")]
-async fn greet(name: String) -> Result<String, ToolError> {
+async fn greet(name: String) -> Result<String> {
     tracing::debug!("greet tool called with name: {}", name);
     let result = format!("Hello, {name}");
     tracing::debug!("greet tool returning: {}", result);
@@ -25,7 +28,7 @@ pub struct Person {
 }
 
 #[bakkie::tool(title = "insert a person into the db")]
-async fn insert_into_db(person: Person) -> Result<(), ToolError> {
+async fn insert_into_db(person: Person) -> Result<()> {
     tracing::debug!("{person:#?} inserted into database");
     Ok(())
 }
@@ -34,7 +37,7 @@ async fn insert_into_db(person: Person) -> Result<(), ToolError> {
     title = "Record interaction",
     description = "record an interaction between characters in the play"
 )]
-async fn record_interaction(speaker: Person, listener: Person) -> Result<(), ToolError> {
+async fn record_interaction(speaker: Person, listener: Person) -> Result<()> {
     tracing::debug!("{speaker:#?} talking to {listener:#?} inserted into database");
     Ok(())
 }
