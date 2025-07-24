@@ -28,18 +28,18 @@ pub struct Person {
 }
 
 #[bakkie::tool(title = "insert a person into the db")]
-async fn insert_into_db(person: Person) -> Result<()> {
+async fn insert_into_db(person: Person) -> Result<usize> {
     tracing::debug!("{person:#?} inserted into database");
-    Ok(())
+    Ok(0)
 }
 
 #[bakkie::tool(
     title = "Record interaction",
     description = "record an interaction between characters in the play"
 )]
-async fn record_interaction(speaker: Person, listener: Person) -> Result<()> {
+async fn record_interaction(speaker: Person, listener: Person) -> Result<String> {
     tracing::debug!("{speaker:#?} talking to {listener:#?} inserted into database");
-    Ok(())
+    todo!();
 }
 
 #[tokio::main]
@@ -48,8 +48,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let provisions = Provisions::default();
 
-    provisions.insert_tool(greet()).await;
-    provisions.insert_tool(insert_into_db()).await;
+    //provisions.insert_tool(greet()).await;
+    //provisions.insert_tool(insert_into_db()).await;
     provisions.insert_tool(record_interaction()).await;
 
     let server = McpServer::new_with_provisions(bakkie::stdio(), provisions);

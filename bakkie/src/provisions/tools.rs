@@ -88,8 +88,17 @@ pub struct ToolParticulars {
     pub input_schema: Schema,
 
     #[serde(rename = "outputSchema")]
-    #[serde(default, skip_serializing_if = "::std::option::Option::is_none")]
+    #[serde(default, skip_serializing_if = "work_around_insane_claude_code_bug")]
     pub output_schema: Option<Schema>,
+}
+
+/// Claude Code (1.0.59) shits the bed if the output schema is not for a compound structure
+fn work_around_insane_claude_code_bug(os: &Option<Schema>) -> bool {
+    let Some(Some(obj)) = os.as_ref().map(|s| s.as_object()) else {
+        return true;
+    };
+
+    !obj.contains_key("properties")
 }
 
 #[derive(Debug, Serialize, Deserialize)]
