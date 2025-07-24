@@ -53,7 +53,7 @@ impl<T: Serialize + Send> AsToolOutput for T {
 }
 
 pub type ToolFuture =
-    Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, ToolError>> + Send>>;
+    Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, Box<dyn std::error::Error>>> + Send>>;
 
 pub struct ToolInput {
     pub request_id: RequestId,
