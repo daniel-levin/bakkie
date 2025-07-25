@@ -1,8 +1,7 @@
 [package]
-name = "digest"
+name = "analyst"
 version = "0.1.0"
 edition = "2024"
-publish = false
 
 [dependencies]
 anyhow = "1"
@@ -12,10 +11,15 @@ bakkie_derive = "0.1"
 tokio = { version = "1.45.1", features = ["full"] }
 serde_json = "1.0.140"
 serde = { version = "1", features = ["derive"] }
+linkme = "0.3"
+
 ashpd = "0.11"
 futures-util = "0.3"
+
 zbus = "5"
 
 tracing = "0.1"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+quick-xml = { version = "0.38", features = ["serde", "serialize"] }
+reqwest = "0.12"
