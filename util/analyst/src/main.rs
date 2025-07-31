@@ -79,7 +79,11 @@ async fn list_news_sources() -> Result<Vec<String>> {
 }
 
 #[bakkie::tool]
-async fn yoink_top_stories(publication: String) -> Result<Vec<Story>> {
+async fn yoink_top_stories(
+    #[app] something_else: App<State>,
+    publication: String,
+) -> Result<Vec<Story>> {
+    let _ = app;
     for Source { name, feed } in SOURCES {
         if *name == publication {
             return Ok(yoink_stories(feed).await.unwrap());
