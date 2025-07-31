@@ -97,17 +97,21 @@ fn poes() {
     dbg!(y);
 }
 
+#[derive(Debug)]
+struct State {}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     bakkie::dnp!();
 
+    let app = State {};
     let provisions = Provisions::default();
 
     //provisions.insert_tool(greet()).await;
     provisions.insert_tool(yoink_top_stories).await;
     provisions.insert_tool(list_news_sources).await;
 
-    let server = McpServer::new_with_provisions(bakkie::stdio(), provisions);
+    let server = McpServer::new_with_provisions_and_application(bakkie::stdio(), provisions, app);
     server.run().await?;
     Ok(())
 }

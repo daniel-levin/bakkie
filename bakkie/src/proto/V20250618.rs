@@ -33,25 +33,46 @@ pub enum McpServerError {
     },
 }
 
-#[derive(Debug)]
-pub struct McpServer<App = ()>
+#[derive(Debug, Default)]
+pub struct App<A = ()>
 where
-    App: Send + Sync + 'static,
+    A: Send + Sync + 'static,
 {
-    #[allow(dead_code)]
-    provisions: Provisions,
-    inbox_task: JoinHandle<Result<(), InboxError>>,
-    outbox_task: JoinHandle<Result<(), OutboxError>>,
-
-    app: Arc<RwLock<App>>,
+    interior: Arc<RwLock<A>>,
 }
 
-impl McpServer {
-    pub fn new<T: Transport>(t: T) -> Self {
-        Self::new_with_provisions(t, Provisions::default())
+impl<A> App<A>
+where
+    A: Send + Sync + 'static,
+{
+    pub fn new(a: A) -> Self {
+        Self {
+            interior: Arc::new(RwLock::new(a)),
+        }
     }
+}
 
-    pub fn new_with_provisions<T: Transport>(t: T, provisions: Provisions) -> Self {
+#[derive(Debug)]
+pub struct McpServer<A = ()>
+where
+    A: Send + Sync + 'static,
+{
+    #[allow(dead_code)]
+    inbox_task: JoinHandle<Result<(), InboxError>>,
+    outbox_task: JoinHandle<Result<(), OutboxError>>,
+    provisions: Provisions,
+    app: App<A>,
+}
+
+impl<A> McpServer<A>
+where
+    A: Send + Sync + 'static,
+{
+    pub fn new_with_provisions_and_application<T: Transport>(
+        t: T,
+        provisions: Provisions,
+        app: A,
+    ) -> Self {
         let framing = t.into_framed();
 
         let (write, read) = framing.split();
@@ -84,7 +105,7 @@ impl McpServer {
             provisions,
             inbox_task,
             outbox_task,
-            app: Arc::new(RwLock::new(())),
+            app: App::new(app),
         }
     }
 
@@ -100,6 +121,16 @@ impl McpServer {
                 outbox_error: outbox_err,
             }),
         }
+    }
+}
+
+impl McpServer<()> {
+    pub fn new<T: Transport>(t: T) -> Self {
+        Self::new_with_provisions(t, Provisions::default())
+    }
+
+    pub fn new_with_provisions<T: Transport>(t: T, provisions: Provisions) -> Self {
+        Self::new_with_provisions_and_application(t, provisions, ())
     }
 }
 
