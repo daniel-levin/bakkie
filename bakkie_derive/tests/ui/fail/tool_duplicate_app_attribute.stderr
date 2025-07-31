@@ -1,0 +1,5 @@
+error: only one parameter can have the #[app] attribute
+ --> tests/ui/fail/tool_duplicate_app_attribute.rs:4:36
+  |
+4 | async fn my_tool(#[app] app1: i32, #[app] app2: i32) -> Result<String, String> {
+  |                                    ^^^^^^^^^^^^^^^^

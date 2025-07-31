@@ -196,10 +196,44 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     // Extract function parameters and create struct fields
     let mut struct_fields = Vec::new();
     let mut field_names = Vec::new();
+    let mut app_param_name: Option<syn::Ident> = None;
 
     for input_param in input.sig.inputs.iter() {
         if let syn::FnArg::Typed(pat_type) = input_param {
-            if pat_type.attrs.is_empty() {
+            if !pat_type.attrs.is_empty() {
+                // Check if this parameter has an #[app] attribute
+                let has_app_attr = pat_type.attrs.iter().any(|attr| {
+                    if let syn::Meta::Path(path) = &attr.meta {
+                        path.is_ident("app")
+                    } else {
+                        false
+                    }
+                });
+
+                if has_app_attr {
+                    // Check if we already found an app parameter
+                    if app_param_name.is_some() {
+                        return syn::Error::new_spanned(
+                            pat_type,
+                            "only one parameter can have the #[app] attribute",
+                        )
+                        .to_compile_error()
+                        .into();
+                    }
+
+                    // Store the app parameter name
+                    if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                        app_param_name = Some(pat_ident.ident.clone());
+                    } else {
+                        return syn::Error::new_spanned(
+                            pat_type,
+                            "#[app] attribute can only be used on simple identifiers",
+                        )
+                        .to_compile_error()
+                        .into();
+                    }
+                }
+            } else {
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                     let field_name = &pat_ident.ident;
                     let field_type = &pat_type.ty;
@@ -230,6 +264,10 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     let title_expr = &metadata.title_expr;
     let description_expr = &metadata.description_expr;
 
+    // Use the app parameter name if provided, otherwise default to 'app'
+    let default_app_name: syn::Ident = syn::parse_quote!(app);
+    let app_param = app_param_name.as_ref().unwrap_or(&default_app_name);
+
     let output = quote! {
         #[derive(bakkie::serde::Serialize, bakkie::serde::Deserialize, bakkie::schemars::JsonSchema)]
         #[serde(crate = "bakkie::serde")]
@@ -242,7 +280,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         #(#fn_attrs)*
         #[allow(non_snake_case)]
         #fn_vis async fn #impl_fn_name<A: Send + Sync + 'static>(
-                app: bakkie::proto::V20250618::App<A>,
+                #app_param: bakkie::proto::V20250618::App<A>,
                 _def_no_conflict_name_args_123: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = _def_no_conflict_name_args_123;
             #fn_body

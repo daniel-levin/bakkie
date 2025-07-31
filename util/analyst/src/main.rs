@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use bakkie::{
     proto::V20250618::McpServer,
     provisions::{
@@ -83,7 +81,7 @@ async fn yoink_top_stories(
     #[app] something_else: App<State>,
     publication: String,
 ) -> Result<Vec<Story>> {
-    let _ = app;
+    let _ = something_else;
     for Source { name, feed } in SOURCES {
         if *name == publication {
             return Ok(yoink_stories(feed).await.unwrap());

@@ -8,16 +8,10 @@ use bakkie::{
     },
 };
 
-use ashpd::desktop::Color;
-
-use std::{thread, time};
-
 use ashpd::desktop::{
     Icon,
-    notification::{Action, Button, Notification, NotificationProxy, Priority},
+    notification::{Button, Notification, NotificationProxy, Priority},
 };
-use futures_util::StreamExt;
-use zbus::zvariant::Value;
 
 async fn run() -> ashpd::Result<()> {
     let proxy = NotificationProxy::new().await?;

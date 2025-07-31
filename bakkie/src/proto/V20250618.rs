@@ -61,11 +61,11 @@ where
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct McpServer<A = ()>
 where
     A: Send + Sync + 'static,
 {
-    #[allow(dead_code)]
     inbox_task: JoinHandle<Result<(), InboxError>>,
     outbox_task: JoinHandle<Result<(), OutboxError>>,
     provisions: Provisions<A>,
