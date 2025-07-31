@@ -7,7 +7,7 @@ use bakkie::{
     proto::V20250618::McpServer,
     provisions::{
         Provisions,
-        tools::{ToolError, ToolFuture, ToolInput, ToolOutput},
+        tools::{Tool, ToolError, ToolFuture, ToolInput, ToolOutput},
     },
 };
 use futures::{SinkExt, stream::StreamExt};
@@ -100,7 +100,7 @@ async fn test_tool_func(param: String) -> Result<String, ToolError> {
 #[tokio::test]
 async fn test_naming_convention() {
     // Now test_tool_func() returns a Tool struct
-    let tool = test_tool_func();
+    let tool: Tool<()> = test_tool_func();
     assert_eq!(tool.particulars.name, "test_tool_func");
 
     // The implementation is available as test_tool_func_impl()

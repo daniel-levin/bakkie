@@ -97,7 +97,7 @@ fn poes() {
     dbg!(y);
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 struct State {}
 
 #[tokio::main]

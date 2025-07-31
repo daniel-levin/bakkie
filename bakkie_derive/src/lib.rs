@@ -234,10 +234,10 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         // Constructor for the complete tool
         #[allow(non_snake_case)]
-        #fn_vis fn #tool_fn_name() -> bakkie::provisions::tools::Tool {
+        #fn_vis fn #tool_fn_name<A: Send + Sync + 'static>() -> bakkie::provisions::tools::Tool<A> {
             bakkie::provisions::tools::Tool {
                 particulars: #particulars_fn(),
-                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput| {
+                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<A>| {
                     Box::pin(async move {
                         // Parse the input parameters from JSON
                         let args: #struct_name = match serde_json::from_value(

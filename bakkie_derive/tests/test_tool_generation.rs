@@ -1,5 +1,6 @@
 use bakkie::{
     framing::RequestId,
+    proto::V20250618::App,
     provisions::tools::{ToolError, ToolInput},
 };
 use bakkie_derive::tool;
@@ -28,6 +29,7 @@ async fn test_generated_tool_fn() {
     let tool_input = ToolInput {
         request_id: RequestId::String("test_123".to_string()),
         params,
+        app: App::new(()),
     };
 
     // Call the tool function

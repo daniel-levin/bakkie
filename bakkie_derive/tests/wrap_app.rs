@@ -30,6 +30,7 @@ async fn test_generated_tool_fn() {
     let tool_input = ToolInput {
         request_id: RequestId::String("test_123".to_string()),
         params,
+        app: App::new(()),
     };
 
     // Call the tool function
