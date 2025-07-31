@@ -1,4 +1,4 @@
-use crate::framing::RequestId;
+use crate::{framing::RequestId, proto::V20250618::App};
 use schemars::Schema;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, future::Future, pin::Pin};
@@ -69,9 +69,13 @@ impl<T: Serialize + Send + Sync + 'static> AsToolOutput for T {
 pub type ToolFuture =
     Pin<Box<dyn Future<Output = Result<Box<dyn AsToolOutput>, ToolError>> + Send>>;
 
-pub struct ToolInput {
+pub struct ToolInput<A = ()>
+where
+    A: Send + Sync + 'static,
+{
     pub request_id: RequestId,
     pub params: serde_json::Map<String, serde_json::Value>,
+    pub app: App<A>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -106,18 +110,18 @@ pub struct SchemaTools {
     pub tools: Vec<ToolParticulars>,
 }
 
-pub struct Tool {
+pub struct Tool<A: Send + Sync + 'static> {
     pub particulars: ToolParticulars,
-    pub tool_fn: Box<dyn Fn(ToolInput) -> ToolFuture + Send + Sync>,
+    pub tool_fn: Box<dyn Fn(ToolInput<A>) -> ToolFuture + Send + Sync>,
 }
 
-impl Tool {
+impl<A: Send + Sync + 'static> Tool<A> {
     pub fn name(&self) -> &str {
         &self.particulars.name
     }
 }
 
-impl std::fmt::Debug for Tool {
+impl<A: Send + Sync + 'static> std::fmt::Debug for Tool<A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Tool")
             .field("particulars", &self.particulars)
@@ -127,12 +131,12 @@ impl std::fmt::Debug for Tool {
 }
 
 #[derive(Debug, Default)]
-pub struct Tools {
-    tools: HashMap<String, Tool>,
+pub struct Tools<A: Send + Sync + 'static> {
+    tools: HashMap<String, Tool<A>>,
 }
 
-impl Tools {
-    pub fn insert_tool(&mut self, name: String, tool: Tool) {
+impl<A: Send + Sync + 'static> Tools<A> {
+    pub fn insert_tool(&mut self, name: String, tool: Tool<A>) {
         self.tools.insert(name, tool);
     }
 
@@ -146,7 +150,7 @@ impl Tools {
         })
     }
 
-    pub fn get(&self, name: &str) -> Option<&Tool> {
+    pub fn get(&self, name: &str) -> Option<&Tool<A>> {
         self.tools.get(name)
     }
 }

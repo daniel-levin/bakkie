@@ -6,13 +6,21 @@ use self::tools::{Tool, ToolFuture, ToolInput, Tools};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Debug, Clone, Default)]
-pub struct Provisions {
-    tools: Arc<RwLock<Tools>>,
+#[derive(Debug, Default)]
+pub struct Provisions<A: Send + Sync + 'static> {
+    tools: Arc<RwLock<Tools<A>>>,
 }
 
-impl Provisions {
-    pub async fn insert_tool<F: FnOnce() -> Tool>(&self, tf: F) {
+impl<A: Send + Sync + 'static> Provisions<A> {
+    pub fn clone(&self) -> Self {
+        Self {
+            tools: self.tools.clone(),
+        }
+    }
+}
+
+impl<A: Send + Sync + 'static> Provisions<A> {
+    pub async fn insert_tool<F: FnOnce() -> Tool<A>>(&self, tf: F) {
         let tool = tf();
         let mut tools = self.tools.write().await;
         tools.insert_tool(tool.name().to_owned(), tool);
@@ -26,10 +34,10 @@ impl Provisions {
     pub async fn prepare_tool_future(
         &self,
         name: &str,
-        tool_input: ToolInput,
+        tool_input: ToolInput<A>,
     ) -> Option<ToolFuture> {
         let tools = self.tools.read().await;
-        let tool: &Tool = tools.get(name)?;
+        let tool: &Tool<A> = tools.get(name)?;
 
         Some((tool.tool_fn)(tool_input))
     }

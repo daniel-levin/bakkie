@@ -41,6 +41,14 @@ where
     interior: Arc<RwLock<A>>,
 }
 
+impl<A: Send + Sync + 'static> App<A> {
+    pub fn clone(&self) -> Self {
+        Self {
+            interior: self.interior.clone(),
+        }
+    }
+}
+
 impl<A> App<A>
 where
     A: Send + Sync + 'static,
@@ -60,7 +68,7 @@ where
     #[allow(dead_code)]
     inbox_task: JoinHandle<Result<(), InboxError>>,
     outbox_task: JoinHandle<Result<(), OutboxError>>,
-    provisions: Provisions,
+    provisions: Provisions<A>,
     app: App<A>,
 }
 
@@ -70,7 +78,7 @@ where
 {
     pub fn new_with_provisions_and_application<T: Transport>(
         t: T,
-        provisions: Provisions,
+        provisions: Provisions<A>,
         app: A,
     ) -> Self {
         let framing = t.into_framed();
@@ -79,10 +87,13 @@ where
 
         let (tx, rx) = mpsc::unbounded_channel();
 
+        let app_container = App::new(app);
+
         let init_phase = InitPhase {
             tx,
             stream: read,
             provisions: provisions.clone(),
+            app: app_container.clone(),
         };
 
         let outbox = Outbox {
@@ -105,7 +116,7 @@ where
             provisions,
             inbox_task,
             outbox_task,
-            app: App::new(app),
+            app: app_container,
         }
     }
 
@@ -129,7 +140,7 @@ impl McpServer<()> {
         Self::new_with_provisions(t, Provisions::default())
     }
 
-    pub fn new_with_provisions<T: Transport>(t: T, provisions: Provisions) -> Self {
+    pub fn new_with_provisions<T: Transport>(t: T, provisions: Provisions<()>) -> Self {
         Self::new_with_provisions_and_application(t, provisions, ())
     }
 }
@@ -186,14 +197,15 @@ pub enum InitPhaseError {
 }
 
 #[derive(Debug)]
-struct InitPhase<T: Transport> {
+struct InitPhase<T: Transport, A: Send + Sync + 'static> {
     tx: mpsc::UnboundedSender<Frame>,
     stream: SplitStream<Framed<T, McpFraming>>,
-    provisions: Provisions,
+    provisions: Provisions<A>,
+    app: App<A>,
 }
 
-impl<T: Transport> InitPhase<T> {
-    async fn negotiate(mut self) -> Result<OpPhase<T>, InitPhaseError> {
+impl<T: Transport, A: Send + Sync + 'static> InitPhase<T, A> {
+    async fn negotiate(mut self) -> Result<OpPhase<T, A>, InitPhaseError> {
         let Some(rcv) = self.stream.next().await else {
             return Err(InitPhaseError::PrematureStreamClosure);
         };
@@ -254,6 +266,7 @@ impl<T: Transport> InitPhase<T> {
             tx: self.tx,
             stream: self.stream,
             provisions: self.provisions,
+            app: self.app,
         })
     }
 }
@@ -262,13 +275,14 @@ impl<T: Transport> InitPhase<T> {
 pub enum OpPhaseError {}
 
 #[derive(Debug)]
-struct OpPhase<T: Transport> {
+struct OpPhase<T: Transport, A: Send + Sync + 'static> {
     tx: mpsc::UnboundedSender<Frame>,
     stream: SplitStream<Framed<T, McpFraming>>,
-    provisions: Provisions,
+    provisions: Provisions<A>,
+    app: App<A>,
 }
 
-impl<T: Transport> OpPhase<T> {
+impl<T: Transport, A: Send + Sync + 'static> OpPhase<T, A> {
     async fn run_until_client_disconnects(mut self) -> Result<(), OpPhaseError> {
         while let Some(maybe_frame) = self.stream.next().await {
             if let Ok(frame) = maybe_frame {
@@ -276,6 +290,7 @@ impl<T: Transport> OpPhase<T> {
                     tokio::task::spawn(Box::pin(handle_message(
                         msg,
                         self.provisions.clone(),
+                        self.app.clone(),
                         self.tx.clone(),
                     )));
                 }
@@ -308,13 +323,24 @@ impl<T: Transport> Outbox<T> {
     }
 }
 
-async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSender<Frame>) {
+async fn handle_message<A: Send + Sync + 'static>(
+    msg: Msg,
+    provisions: Provisions<A>,
+    app: App<A>,
+    tx: mpsc::UnboundedSender<Frame>,
+) {
     match msg {
         Msg::Request(RequestOrNotification::Request {
             id, method, params, ..
         }) => match method.as_str() {
             "tools/call" => {
-                tokio::task::spawn(Box::pin(call_tool(id, params.unwrap(), provisions, tx)));
+                tokio::task::spawn(Box::pin(call_tool(
+                    id,
+                    params.unwrap(),
+                    provisions,
+                    app,
+                    tx,
+                )));
             }
             "tools/list" => {
                 let _ = tx.send(Frame::Single(Msg::Response(Response {
@@ -333,12 +359,15 @@ async fn handle_message(msg: Msg, provisions: Provisions, tx: mpsc::UnboundedSen
 }
 
 #[allow(unused_variables)]
-async fn call_tool(
+async fn call_tool<A>(
     request_id: RequestId,
     params: serde_json::Value,
-    provisions: Provisions,
+    provisions: Provisions<A>,
+    app: App<A>,
     tx: mpsc::UnboundedSender<Frame>,
-) {
+) where
+    A: Send + Sync + 'static,
+{
     let ctrp =
         serde_json::from_value::<bakkie_schema::V20250618::CallToolRequestParams>(params).unwrap();
 
@@ -347,6 +376,7 @@ async fn call_tool(
     let input = ToolInput {
         request_id,
         params: ctrp.arguments,
+        app,
     };
 
     let prepped_fut = provisions
