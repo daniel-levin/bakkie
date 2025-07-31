@@ -11,8 +11,8 @@ pub struct Provisions<A: Send + Sync + 'static> {
     tools: Arc<RwLock<Tools<A>>>,
 }
 
-impl<A: Send + Sync + 'static> Provisions<A> {
-    pub fn clone(&self) -> Self {
+impl<A: Send + Sync + 'static> Clone for Provisions<A> {
+    fn clone(&self) -> Self {
         Self {
             tools: self.tools.clone(),
         }

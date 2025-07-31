@@ -41,8 +41,8 @@ where
     interior: Arc<RwLock<A>>,
 }
 
-impl<A: Send + Sync + 'static> App<A> {
-    pub fn clone(&self) -> Self {
+impl<A: Send + Sync + 'static> Clone for App<A> {
+    fn clone(&self) -> Self {
         Self {
             interior: self.interior.clone(),
         }
