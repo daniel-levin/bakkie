@@ -4,7 +4,7 @@
 
 use bakkie::{
     framing::{Frame, Msg, RequestId, RequestOrNotification, Transport},
-    proto::V20250618::McpServer,
+    proto::V20250618::{App, McpServer},
     provisions::{
         Provisions,
         tools::{Tool, ToolError, ToolFuture, ToolInput, ToolOutput},
@@ -60,7 +60,8 @@ fn test_macro_generates_struct_old() {
         haystack: "banana".to_string(),
     };
 
-    let result = tokio_test::block_on(async { count_letters_impl(args).await }).unwrap();
+    let result =
+        tokio_test::block_on(async { count_letters_impl(App::new(()), args).await }).unwrap();
     assert_eq!(result, 3); // 'a' appears 3 times in "banana"
 }
 
@@ -85,7 +86,7 @@ fn test_macro_generates_struct2() {
     };
 
     let t: ToolFuture = Box::pin(async move {
-        match remember_location_impl(args).await {
+        match remember_location_impl(App::new(()), args).await {
             Ok(r) => Ok(Box::new(r) as Box<dyn bakkie::provisions::tools::AsToolOutput>),
             Err(e) => Err(e),
         }
@@ -107,7 +108,7 @@ async fn test_naming_convention() {
     let args = test_tool_funcArgs {
         param: "test".to_string(),
     };
-    let result = test_tool_func_impl(args).await.unwrap();
+    let result = test_tool_func_impl(App::new(()), args).await.unwrap();
     assert_eq!(result, "test");
 }
 

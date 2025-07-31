@@ -203,7 +203,9 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #(#fn_attrs)*
         #[allow(non_snake_case)]
-        #fn_vis async fn #impl_fn_name(_def_no_conflict_name_args_123: #struct_name) #fn_output {
+        #fn_vis async fn #impl_fn_name<A: Send + Sync + 'static>(
+                app: bakkie::proto::V20250618::App<A>,
+                _def_no_conflict_name_args_123: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = _def_no_conflict_name_args_123;
             #fn_body
         }
@@ -248,7 +250,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                         };
 
                         // Call the actual tool function
-                        match #impl_fn_name(args).await {
+                        match #impl_fn_name(tool_input.app.clone(), args).await {
                             Ok(result) => Ok(Box::new(result) as Box<dyn bakkie::provisions::tools::AsToolOutput>),
                             Err(e) => Err(ToolError::Internal(Box::new(e))),
                         }
