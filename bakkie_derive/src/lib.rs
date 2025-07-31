@@ -145,15 +145,17 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
     for input_param in input.sig.inputs.iter() {
         if let syn::FnArg::Typed(pat_type) = input_param {
-            if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
-                let field_name = &pat_ident.ident;
-                let field_type = &pat_type.ty;
+            if pat_type.attrs.is_empty() {
+                if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                    let field_name = &pat_ident.ident;
+                    let field_type = &pat_type.ty;
 
-                struct_fields.push(quote! {
-                    pub #field_name: #field_type
-                });
+                    struct_fields.push(quote! {
+                        pub #field_name: #field_type
+                    });
 
-                field_names.push(field_name);
+                    field_names.push(field_name);
+                }
             }
         }
     }
@@ -201,8 +203,8 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #(#fn_attrs)*
         #[allow(non_snake_case)]
-        #fn_vis async fn #impl_fn_name(args: #struct_name) #fn_output {
-            let #struct_name { #(#field_names),* } = args;
+        #fn_vis async fn #impl_fn_name(_def_no_conflict_name_args_123: #struct_name) #fn_output {
+            let #struct_name { #(#field_names),* } = _def_no_conflict_name_args_123;
             #fn_body
         }
 
