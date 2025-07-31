@@ -233,17 +233,15 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                         .into();
                     }
                 }
-            } else {
-                if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
-                    let field_name = &pat_ident.ident;
-                    let field_type = &pat_type.ty;
+            } else if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                let field_name = &pat_ident.ident;
+                let field_type = &pat_type.ty;
 
-                    struct_fields.push(quote! {
-                        pub #field_name: #field_type
-                    });
+                struct_fields.push(quote! {
+                    pub #field_name: #field_type
+                });
 
-                    field_names.push(field_name);
-                }
+                field_names.push(field_name);
             }
         }
     }

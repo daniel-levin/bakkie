@@ -5,10 +5,15 @@ use bakkie::{
 };
 use bakkie_derive::tool;
 
+#[allow(dead_code)]
 struct S {}
 
 #[tool]
-async fn stateful_test(#[app] a: App<S>, message: String, count: u32) -> Result<String, ToolError> {
+async fn stateful_test(
+    #[app] _a: App<S>,
+    message: String,
+    count: u32,
+) -> Result<String, ToolError> {
     Ok(format!("{} (repeated {} times)", message, count))
 }
 
