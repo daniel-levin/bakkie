@@ -58,6 +58,10 @@ where
             interior: Arc::new(RwLock::new(a)),
         }
     }
+
+    pub fn app(&self) -> &RwLock<A> {
+        &self.interior
+    }
 }
 
 #[derive(Debug)]

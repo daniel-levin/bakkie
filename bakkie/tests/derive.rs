@@ -118,6 +118,10 @@ struct X {
 
 #[bakkie::tool]
 async fn greet(#[app] app: App<X>, name: String) -> Result<String, ToolError> {
+    let mut r = app.app().write().await;
+
+    (*r).count += 1;
+
     Ok(format!("Hello, {name}"))
 }
 
@@ -129,7 +133,8 @@ async fn call_derived_tool() -> anyhow::Result<()> {
         let provisions = Provisions::default();
         provisions.insert_tool(greet).await;
 
-        let server = McpServer::new_with_provisions(server, provisions);
+        let server =
+            McpServer::new_with_provisions_and_application(server, provisions, X { count: 0 });
 
         server.run().await
     });
