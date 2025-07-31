@@ -1,0 +1,19 @@
+---
+source: bakkie/tests/derive.rs
+expression: tool_response
+---
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [
+      {
+        "text": "\"Hello, World\"",
+        "type": "text"
+      }
+    ],
+    "structuredContent": {
+      "result": "Hello, World"
+    }
+  },
+  "id": 3
+}

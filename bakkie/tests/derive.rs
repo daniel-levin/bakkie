@@ -185,7 +185,9 @@ async fn call_derived_tool() -> anyhow::Result<()> {
         .send(Frame::Single(Msg::Request(call_tool_request)))
         .await;
 
-    //let _tool_response = framed.next().await;
+    let tool_response = framed.next().await.unwrap().unwrap();
+
+    insta::assert_json_snapshot!(tool_response);
 
     Ok(())
 }
