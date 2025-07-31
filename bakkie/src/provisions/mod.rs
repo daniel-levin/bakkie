@@ -6,9 +6,17 @@ use self::tools::{Tool, ToolFuture, ToolInput, Tools};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Provisions<A: Send + Sync + 'static> {
     tools: Arc<RwLock<Tools<A>>>,
+}
+
+impl<A: Send + Sync + 'static> Default for Provisions<A> {
+    fn default() -> Self {
+        Self {
+            tools: Arc::new(RwLock::new(Tools::new())),
+        }
+    }
 }
 
 impl<A: Send + Sync + 'static> Clone for Provisions<A> {

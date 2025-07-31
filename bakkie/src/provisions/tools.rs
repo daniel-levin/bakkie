@@ -136,6 +136,12 @@ pub struct Tools<A: Send + Sync + 'static> {
 }
 
 impl<A: Send + Sync + 'static> Tools<A> {
+    pub fn new() -> Self {
+        Self {
+            tools: HashMap::new(),
+        }
+    }
+
     pub fn insert_tool(&mut self, name: String, tool: Tool<A>) {
         self.tools.insert(name, tool);
     }

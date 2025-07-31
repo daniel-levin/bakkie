@@ -112,8 +112,12 @@ async fn test_naming_convention() {
     assert_eq!(result, "test");
 }
 
+struct X {
+    count: usize,
+}
+
 #[bakkie::tool]
-async fn greet(name: String) -> Result<String, ToolError> {
+async fn greet(#[app] app: App<X>, name: String) -> Result<String, ToolError> {
     Ok(format!("Hello, {name}"))
 }
 
