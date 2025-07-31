@@ -7,9 +7,10 @@ use futures::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
 };
+use std::sync::Arc;
 use thiserror::Error;
 use tokio::{
-    sync::mpsc,
+    sync::{RwLock, mpsc},
     task::{JoinError, JoinHandle},
 };
 use tokio_util::codec::Framed;
@@ -33,11 +34,16 @@ pub enum McpServerError {
 }
 
 #[derive(Debug)]
-pub struct McpServer {
+pub struct McpServer<App = ()>
+where
+    App: Send + Sync + 'static,
+{
     #[allow(dead_code)]
     provisions: Provisions,
     inbox_task: JoinHandle<Result<(), InboxError>>,
     outbox_task: JoinHandle<Result<(), OutboxError>>,
+
+    app: Arc<RwLock<App>>,
 }
 
 impl McpServer {
@@ -78,6 +84,7 @@ impl McpServer {
             provisions,
             inbox_task,
             outbox_task,
+            app: Arc::new(RwLock::new(())),
         }
     }
 
