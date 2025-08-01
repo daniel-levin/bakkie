@@ -25,14 +25,25 @@ async fn count_letters(input: String) -> Result<HashMap<char, usize>> {
     Ok(res)
 }
 
+#[bakkie::structured]
+enum Progress {
+    Forward,
+    Backward,
+}
+
+/// Inform the user of some progress
+#[bakkie::tool(title = "__inform_progress")]
+async fn inform_progress(#[app] app: App<MyApp>, progress: Progress) -> Result<()> {
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     bakkie::dnp!();
 
-    let provisions = Provisions::<MyApp>::default();
-    //provisions.insert_tool(greet()).await;
-    //provisions.insert_tool(insert_into_db()).await;
+    let provisions = Provisions::default();
     provisions.insert_tool(count_letters).await;
+    provisions.insert_tool(inform_progress).await;
 
     let server = McpServer::new_with_provisions_and_application(
         bakkie::stdio(),

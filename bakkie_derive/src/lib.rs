@@ -329,10 +329,33 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
             .into();
         }
     } else {
-        (
-            quote! { _app: bakkie::proto::V20250618::App<A> },
-            Some(syn::parse_quote!(A)),
-        )
+        (quote! { _app: bakkie::proto::V20250618::App<A> }, None)
+    };
+
+    let renamed_function_sig = if app_generic_type.is_some() {
+        quote! {
+            #fn_vis fn #tool_fn_name() -> bakkie::provisions::tools::Tool<#app_generic_type>
+        }
+    } else {
+        quote! {
+            #fn_vis fn #tool_fn_name<A: Send + Sync + 'static>() -> bakkie::provisions::tools::Tool<A>
+        }
+    };
+
+    let renamed_impl_sig = if app_generic_type.is_some() {
+        quote! {
+          #fn_vis async fn #impl_fn_name
+        }
+    } else {
+        quote! {
+          #fn_vis async fn #impl_fn_name<A: Send + Sync + 'static>
+        }
+    };
+
+    let tool_input_return = if let Some(gt) = app_generic_type {
+        quote! { #gt }
+    } else {
+        quote! { A }
     };
 
     let output = quote! {
@@ -346,7 +369,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #(#fn_attrs)*
         #[allow(non_snake_case)]
-        #fn_vis async fn #impl_fn_name<A: Send + Sync + 'static>(
+        #renamed_impl_sig(
                 #app_param_actual,
                 _def_no_conflict_name_args_123: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = _def_no_conflict_name_args_123;
@@ -379,10 +402,10 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         // Constructor for the complete tool
         #[allow(non_snake_case)]
-        #fn_vis fn #tool_fn_name<A: Send + Sync + 'static>() -> bakkie::provisions::tools::Tool<#app_generic_type> {
+        #renamed_function_sig {
             bakkie::provisions::tools::Tool {
                 particulars: #particulars_fn(),
-                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<#app_generic_type>| {
+                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<#tool_input_return>| {
                     Box::pin(async move {
                         // Parse the input parameters from JSON
                         let args: #struct_name = match serde_json::from_value(
