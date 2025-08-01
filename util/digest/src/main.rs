@@ -33,8 +33,12 @@ enum Progress {
 
 /// Inform the user of some progress
 #[bakkie::tool(title = "__inform_progress")]
-async fn inform_progress(#[app] app: App<MyApp>, progress: Progress) -> Result<()> {
-    Ok(())
+async fn inform_progress(#[app] app: App<MyApp>, progress: Progress) -> Result<usize> {
+    let mut c = app.write().await;
+
+    c.invocations += 1;
+
+    Ok(c.invocations)
 }
 
 #[tokio::main]

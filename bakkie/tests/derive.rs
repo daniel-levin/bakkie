@@ -118,9 +118,9 @@ struct X {
 
 #[bakkie::tool]
 async fn greet(#[app] app: App<X>, name: String) -> Result<String, ToolError> {
-    let mut r = app.app().write().await;
+    let mut r = app.write().await;
 
-    (*r).count += 1;
+    r.count += 1;
 
     Ok(format!("Hello, {name}"))
 }
