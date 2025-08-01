@@ -26,6 +26,7 @@ async fn count_letters(input: String) -> Result<HashMap<char, usize>> {
 }
 
 #[bakkie::structured]
+#[derive(PartialEq, Eq)]
 enum Progress {
     Forward,
     Backward,
@@ -36,7 +37,9 @@ enum Progress {
 async fn inform_progress(#[app] app: App<MyApp>, progress: Progress) -> Result<usize> {
     let mut c = app.write().await;
 
-    c.invocations += 1;
+    if progress == Progress::Forward {
+        c.invocations += 1;
+    }
 
     Ok(c.invocations)
 }
