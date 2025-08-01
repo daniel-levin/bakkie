@@ -8,99 +8,102 @@ struct ToolMetadata {
     description_expr: proc_macro2::TokenStream,
 }
 
-fn parse_tool_attributes(
-    args: syn::punctuated::Punctuated<syn::MetaNameValue, syn::Token![,]>,
-    fn_name: &syn::Ident,
-    doc_strings: &[String],
-) -> Result<ToolMetadata, TokenStream> {
-    // parse named arguments: name, title, description as name = "value" pairs
-    let mut name_lit: Option<syn::LitStr> = None;
-    let mut title_lit: Option<syn::LitStr> = None;
-    let mut description_lit: Option<syn::LitStr> = None;
+impl ToolMetadata {
+    fn extract(
+        args: syn::punctuated::Punctuated<syn::MetaNameValue, syn::Token![,]>,
+        fn_name: &syn::Ident,
+        doc_strings: &[String],
+    ) -> Result<Self, TokenStream> {
+        // parse named arguments: name, title, description as name = "value" pairs
+        let mut name_lit: Option<syn::LitStr> = None;
+        let mut title_lit: Option<syn::LitStr> = None;
+        let mut description_lit: Option<syn::LitStr> = None;
 
-    for nv in args {
-        let ident = nv.path.get_ident().map(|i| i.to_string());
-        let lit = match nv.value {
-            syn::Expr::Lit(expr_lit) => match expr_lit.lit {
-                syn::Lit::Str(l) => l,
+        for nv in args {
+            let ident = nv.path.get_ident().map(|i| i.to_string());
+            let lit = match nv.value {
+                syn::Expr::Lit(expr_lit) => match expr_lit.lit {
+                    syn::Lit::Str(l) => l,
+                    other => {
+                        return Err(syn::Error::new_spanned(other, "expected string literal")
+                            .to_compile_error()
+                            .into());
+                    }
+                },
                 other => {
                     return Err(syn::Error::new_spanned(other, "expected string literal")
                         .to_compile_error()
                         .into());
                 }
-            },
-            other => {
-                return Err(syn::Error::new_spanned(other, "expected string literal")
-                    .to_compile_error()
-                    .into());
-            }
-        };
-        match ident.as_deref() {
-            Some("name") => {
-                if name_lit.is_some() {
-                    return Err(
-                        syn::Error::new_spanned(nv.path, "duplicate 'name' attribute")
-                            .to_compile_error()
-                            .into(),
-                    );
+            };
+            match ident.as_deref() {
+                Some("name") => {
+                    if name_lit.is_some() {
+                        return Err(
+                            syn::Error::new_spanned(nv.path, "duplicate 'name' attribute")
+                                .to_compile_error()
+                                .into(),
+                        );
+                    }
+                    name_lit = Some(lit);
                 }
-                name_lit = Some(lit);
-            }
-            Some("title") => {
-                if title_lit.is_some() {
-                    return Err(
-                        syn::Error::new_spanned(nv.path, "duplicate 'title' attribute")
-                            .to_compile_error()
-                            .into(),
-                    );
+                Some("title") => {
+                    if title_lit.is_some() {
+                        return Err(syn::Error::new_spanned(
+                            nv.path,
+                            "duplicate 'title' attribute",
+                        )
+                        .to_compile_error()
+                        .into());
+                    }
+                    title_lit = Some(lit);
                 }
-                title_lit = Some(lit);
-            }
-            Some("description") => {
-                if description_lit.is_some() {
-                    return Err(syn::Error::new_spanned(
-                        nv.path,
-                        "duplicate 'description' attribute",
-                    )
-                    .to_compile_error()
-                    .into());
+                Some("description") => {
+                    if description_lit.is_some() {
+                        return Err(syn::Error::new_spanned(
+                            nv.path,
+                            "duplicate 'description' attribute",
+                        )
+                        .to_compile_error()
+                        .into());
+                    }
+                    description_lit = Some(lit);
                 }
-                description_lit = Some(lit);
-            }
-            _ => {
-                return Err(syn::Error::new_spanned(nv.path, "unknown tool attribute")
-                    .to_compile_error()
-                    .into());
+                _ => {
+                    return Err(syn::Error::new_spanned(nv.path, "unknown tool attribute")
+                        .to_compile_error()
+                        .into());
+                }
             }
         }
+
+        // Prepare expressions for name, title, and description based on attribute args or defaults
+        let name_expr = if let Some(lit) = name_lit {
+            quote! { #lit.to_string() }
+        } else {
+            quote! { stringify!(#fn_name).to_string() }
+        };
+        let title_expr = if let Some(lit) = title_lit {
+            quote! { Some(#lit.to_string()) }
+        } else {
+            quote! { None }
+        };
+
+        let description_expr = if let Some(lit) = description_lit {
+            quote! { Some(#lit.to_string()) }
+        } else if !doc_strings.is_empty() {
+            let doc_string_description = doc_strings.join("\n");
+            quote! { Some(#doc_string_description.to_string()) }
+        } else {
+            quote! { None }
+        };
+
+        Ok(Self {
+            name_expr,
+            title_expr,
+            description_expr,
+        })
     }
-
-    // Prepare expressions for name, title, and description based on attribute args or defaults
-    let name_expr = if let Some(lit) = name_lit {
-        quote! { #lit.to_string() }
-    } else {
-        quote! { stringify!(#fn_name).to_string() }
-    };
-    let title_expr = if let Some(lit) = title_lit {
-        quote! { Some(#lit.to_string()) }
-    } else {
-        quote! { None }
-    };
-
-    let description_expr = if let Some(lit) = description_lit {
-        quote! { Some(#lit.to_string()) }
-    } else if !doc_strings.is_empty() {
-        let doc_string_description = doc_strings.join("\n");
-        quote! { Some(#doc_string_description.to_string()) }
-    } else {
-        quote! { None }
-    };
-
-    Ok(ToolMetadata {
-        name_expr,
-        title_expr,
-        description_expr,
-    })
 }
 
 #[proc_macro_attribute]
@@ -124,6 +127,34 @@ pub fn structured(_args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+fn extract_doc_strings(input: &syn::ItemFn) -> Vec<String> {
+    let mut doc_strings = vec![];
+
+    for att in &input.attrs {
+        if let syn::Attribute {
+            meta:
+                syn::Meta::NameValue(syn::MetaNameValue {
+                    path: syn::Path { segments, .. },
+                    value:
+                        syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(s),
+                            ..
+                        }),
+                    ..
+                }),
+            ..
+        } = att
+        {
+            let syn::PathSegment { ident, .. } = &segments[0];
+            if ident == "doc" {
+                doc_strings.push(s.value());
+            }
+        }
+    }
+
+    doc_strings
 }
 
 #[proc_macro_attribute]
@@ -154,29 +185,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         .into();
     }
 
-    let mut doc_strings = vec![];
-
-    for att in &input.attrs {
-        if let syn::Attribute {
-            meta:
-                syn::Meta::NameValue(syn::MetaNameValue {
-                    path: syn::Path { segments, .. },
-                    value:
-                        syn::Expr::Lit(syn::ExprLit {
-                            lit: syn::Lit::Str(s),
-                            ..
-                        }),
-                    ..
-                }),
-            ..
-        } = att
-        {
-            let syn::PathSegment { ident, .. } = &segments[0];
-            if ident == "doc" {
-                doc_strings.push(s.value());
-            }
-        }
-    }
+    let doc_strings = extract_doc_strings(&input);
 
     let fn_name = &input.sig.ident;
     let fn_vis = &input.vis;
@@ -185,7 +194,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     let fn_body = &input.block;
 
     // Parse tool attributes and get the processed metadata
-    let metadata = match parse_tool_attributes(args, fn_name, &doc_strings) {
+    let metadata = match ToolMetadata::extract(args, fn_name, &doc_strings) {
         Ok(metadata) => metadata,
         Err(error) => return error,
     };
