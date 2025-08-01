@@ -222,7 +222,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                     }
 
                     // Store the app parameter name
-                    if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                    if let syn::Pat::Ident(_) = &*pat_type.pat {
                         app_param = Some(input_param.clone());
                     } else {
                         return syn::Error::new_spanned(
@@ -262,14 +262,77 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
     let title_expr = &metadata.title_expr;
     let description_expr = &metadata.description_expr;
 
-    let app_param_actual = if let Some(p) = app_param {
-        quote! {
-            p
+    // Extract the generic type T from App<T> if app parameter exists
+    let (app_param_actual, app_generic_type) = if let Some(syn::FnArg::Typed(pat_type)) = &app_param
+    {
+        // Extract the type from the parameter
+        if let syn::Type::Path(type_path) = &*pat_type.ty {
+            // Check if this is App<T> and extract T
+            if let Some(last_segment) = type_path.path.segments.last() {
+                if last_segment.ident == "App" {
+                    if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                        if args.args.len() == 1 {
+                            if let syn::GenericArgument::Type(generic_type) = &args.args[0] {
+                                // Successfully extracted T from App<T>
+                                // Create a clean parameter without the #[app] attribute
+                                if let syn::FnArg::Typed(pat_type) = &app_param.clone().unwrap() {
+                                    let clean_pat = &pat_type.pat;
+                                    let clean_ty = &pat_type.ty;
+                                    (quote! { #clean_pat: #clean_ty }, Some(generic_type.clone()))
+                                } else {
+                                    unreachable!("app_param was verified to be Typed above")
+                                }
+                            } else {
+                                return syn::Error::new_spanned(
+                                    &args.args[0],
+                                    "App parameter must have a type argument, not a lifetime or const"
+                                ).to_compile_error().into();
+                            }
+                        } else {
+                            return syn::Error::new_spanned(
+                                &last_segment.arguments,
+                                "App must have exactly one generic parameter",
+                            )
+                            .to_compile_error()
+                            .into();
+                        }
+                    } else {
+                        return syn::Error::new_spanned(
+                            &last_segment,
+                            "App parameter must be App<T> with a generic type parameter",
+                        )
+                        .to_compile_error()
+                        .into();
+                    }
+                } else {
+                    return syn::Error::new_spanned(
+                        &last_segment.ident,
+                        "Parameter with #[app] attribute must be of type App<T>",
+                    )
+                    .to_compile_error()
+                    .into();
+                }
+            } else {
+                return syn::Error::new_spanned(
+                    &type_path.path,
+                    "Parameter with #[app] attribute must be of type App<T>",
+                )
+                .to_compile_error()
+                .into();
+            }
+        } else {
+            return syn::Error::new_spanned(
+                &pat_type.ty,
+                "Parameter with #[app] attribute must be of type App<T>",
+            )
+            .to_compile_error()
+            .into();
         }
     } else {
-        quote! {
-            _app: bakkie::proto::V20250618::App<()>
-        }
+        (
+            quote! { _app: bakkie::proto::V20250618::App<()> },
+            Some(syn::parse_quote!(())),
+        )
     };
 
     let output = quote! {
@@ -316,10 +379,10 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         // Constructor for the complete tool
         #[allow(non_snake_case)]
-        #fn_vis fn #tool_fn_name<A: Send + Sync + 'static>() -> bakkie::provisions::tools::Tool<A> {
+        #fn_vis fn #tool_fn_name() -> bakkie::provisions::tools::Tool<#app_generic_type> {
             bakkie::provisions::tools::Tool {
                 particulars: #particulars_fn(),
-                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<A>| {
+                tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<#app_generic_type>| {
                     Box::pin(async move {
                         // Parse the input parameters from JSON
                         let args: #struct_name = match serde_json::from_value(
