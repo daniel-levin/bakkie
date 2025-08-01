@@ -1,0 +1,5 @@
+error: App parameter must have a type argument, not a lifetime or const
+ --> tests/ui/fail/app_with_const_param.rs:4:34
+  |
+4 | async fn my_tool(#[app] app: App<42>) -> Result<String, String> {
+  |                                  ^^

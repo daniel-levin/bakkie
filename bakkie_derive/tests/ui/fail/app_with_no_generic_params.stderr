@@ -1,0 +1,5 @@
+error: App parameter must be App<T> with a generic type parameter
+ --> tests/ui/fail/app_with_no_generic_params.rs:4:30
+  |
+4 | async fn my_tool(#[app] app: App) -> Result<String, String> {
+  |                              ^^^

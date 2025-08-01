@@ -1,0 +1,5 @@
+error: App must have exactly one generic parameter
+ --> tests/ui/fail/app_with_multiple_generic_params.rs:4:33
+  |
+4 | async fn my_tool(#[app] app: App<String, i32>) -> Result<String, String> {
+  |                                 ^^^^^^^^^^^^^

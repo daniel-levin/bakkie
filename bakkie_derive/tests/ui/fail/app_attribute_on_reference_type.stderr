@@ -1,0 +1,5 @@
+error: Parameter with #[app] attribute must be of type App<T>
+ --> tests/ui/fail/app_attribute_on_reference_type.rs:4:30
+  |
+4 | async fn my_tool(#[app] app: &str) -> Result<String, String> {
+  |                              ^^^^

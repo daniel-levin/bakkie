@@ -307,7 +307,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                         }
                     } else {
                         return syn::Error::new_spanned(
-                            &last_segment,
+                            last_segment,
                             "App parameter must be App<T> with a generic type parameter",
                         )
                         .to_compile_error()
