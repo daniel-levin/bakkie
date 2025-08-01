@@ -330,8 +330,8 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     } else {
         (
-            quote! { _app: bakkie::proto::V20250618::App<()> },
-            Some(syn::parse_quote!(())),
+            quote! { _app: bakkie::proto::V20250618::App<A> },
+            Some(syn::parse_quote!(A)),
         )
     };
 
@@ -346,7 +346,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         #(#fn_attrs)*
         #[allow(non_snake_case)]
-        #fn_vis async fn #impl_fn_name(
+        #fn_vis async fn #impl_fn_name<A: Send + Sync + 'static>(
                 #app_param_actual,
                 _def_no_conflict_name_args_123: #struct_name) #fn_output {
             let #struct_name { #(#field_names),* } = _def_no_conflict_name_args_123;
@@ -379,7 +379,7 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
 
         // Constructor for the complete tool
         #[allow(non_snake_case)]
-        #fn_vis fn #tool_fn_name() -> bakkie::provisions::tools::Tool<#app_generic_type> {
+        #fn_vis fn #tool_fn_name<A: Send + Sync + 'static>() -> bakkie::provisions::tools::Tool<#app_generic_type> {
             bakkie::provisions::tools::Tool {
                 particulars: #particulars_fn(),
                 tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<#app_generic_type>| {

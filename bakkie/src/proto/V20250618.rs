@@ -10,7 +10,7 @@ use futures::{
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::{
-    sync::{RwLock, mpsc},
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard, mpsc},
     task::{JoinError, JoinHandle},
 };
 use tokio_util::codec::Framed;
@@ -59,8 +59,12 @@ where
         }
     }
 
-    pub fn app(&self) -> &RwLock<A> {
-        &self.interior
+    pub async fn read(&self) -> RwLockReadGuard<'_, A> {
+        self.interior.read().await
+    }
+
+    pub async fn write(&self) -> RwLockWriteGuard<'_, A> {
+        self.interior.write().await
     }
 }
 
