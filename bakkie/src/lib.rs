@@ -1,3 +1,4 @@
+/// # Simple MCP server framework for Rust.
 pub use bakkie_derive::{structured, tool};
 
 pub mod framing;
@@ -25,6 +26,9 @@ impl<T: schemars::JsonSchema, E> InnerSchema for Result<T, E> {
 pub fn stdio() -> crate::framing::StdioTransport {
     tokio::io::join(tokio::io::stdin(), tokio::io::stdout())
 }
+
+pub use proto::V20250618::{App, McpServer};
+pub use provisions::Provisions;
 
 #[macro_export]
 macro_rules! dnp {

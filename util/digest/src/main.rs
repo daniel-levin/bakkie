@@ -1,11 +1,8 @@
 use std::collections::HashMap;
 
 use bakkie::{
-    proto::V20250618::{App, McpServer},
-    provisions::{
-        Provisions,
-        tools::{Result, ToolError},
-    },
+    App, McpServer, Provisions,
+    provisions::tools::{Result, ToolError},
 };
 
 #[derive(Debug, Default)]
@@ -46,8 +43,6 @@ async fn inform_progress(#[app] app: App<MyApp>, progress: Progress) -> Result<u
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    bakkie::dnp!();
-
     let provisions = Provisions::default();
     provisions.insert_tool(count_letters).await;
     provisions.insert_tool(inform_progress).await;
