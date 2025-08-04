@@ -82,6 +82,10 @@ pub mod serde {
     pub use serde::*;
 }
 
+pub mod serde_json {
+    pub use serde_json::*;
+}
+
 pub trait InnerSchema {
     fn inner_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema;
 }

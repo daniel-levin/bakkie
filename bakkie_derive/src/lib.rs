@@ -417,8 +417,8 @@ pub fn tool(args: TokenStream, input: TokenStream) -> TokenStream {
                 tool_fn: Box::new(|tool_input: bakkie::provisions::tools::ToolInput<#tool_input_return>| {
                     Box::pin(async move {
                         // Parse the input parameters from JSON
-                        let args: #struct_name = match serde_json::from_value(
-                            serde_json::Value::Object(tool_input.params)
+                        let args: #struct_name = match bakkie::serde_json::from_value(
+                            bakkie::serde_json::Value::Object(tool_input.params)
                         ) {
                             Ok(args) => args,
                             Err(e) => Err(ToolError::Json(e))?,

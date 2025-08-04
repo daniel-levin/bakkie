@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "bakkie", "bakkie_derive", "bakkie_schema", "gen", "util/digest"]
+members = [ "bakkie", "bakkie_derive", "bakkie_schema", "examples/basic", "gen", "util/digest"]
 
 [patch.crates-io]
 bakkie = { path = "bakkie" }
