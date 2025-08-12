@@ -1,4 +1,7 @@
 //! # Simple MCP server framework for Rust.
+//! [<img alt="crates.io" src="https://img.shields.io/crates/v/bakkie.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/bakkie)
+//! [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-bakkie?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/bakkie)
+//! [<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/daniel-levin/bakkie/test.yml?branch=main&style=for-the-badge" height="20">](https://github.com/daniel-levin/bakkie/actions)
 //!
 //! Bakkie is a framework for building Model Context Protocol (MCP) servers in Rust.
 //! MCP is a protocol that enables AI assistants to securely access external resources
