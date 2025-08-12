@@ -2,6 +2,11 @@
 name = "bakkie_schema"
 version = "0.1.0"
 edition = "2024"
+license = "Unlicense/MIT"
+authors = ["Daniel Levin <daniellevin2607@gmail.com>"]
+description = "JSON schema definitions for the bakkie MCP server framework"
+repository = "https://github.com/daniel-levin/bakkie"
+homepage = "https://github.com/daniel-levin/bakkie"
 
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }

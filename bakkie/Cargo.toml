@@ -4,7 +4,12 @@ version = "0.1.0"
 edition = "2024"
 license = "Unlicense/MIT"
 authors = ["Daniel Levin <daniellevin2607@gmail.com>"]
-keywords = ["mcp"]
+description = "Simple MCP server framework for Rust"
+repository = "https://github.com/daniel-levin/bakkie"
+homepage = "https://github.com/daniel-levin/bakkie"
+readme = "../README.md"
+keywords = ["mcp", "model-context-protocol", "framework", "server", "tools"]
+categories = ["development-tools", "api-bindings", "network-programming"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
