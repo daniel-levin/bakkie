@@ -6,8 +6,9 @@
 [<img alt="build status" src="https://img.shields.io/github/actions/workflow/status/daniel-levin/bakkie/test.yml?branch=main&style=for-the-badge" height="20">](https://github.com/daniel-levin/bakkie/actions)
 
 Bakkie is a framework for building Model Context Protocol (MCP) servers in Rust.
-MCP is a protocol that enables AI assistants to securely access external resources
-and tools through standardized server implementations.
+MCP is a protocol that enables AI assistants to access external resources
+and tools through standardized server implementations. It is probably not necessary, but it has
+become pervasive.
 
 ### Basic Usage
 
